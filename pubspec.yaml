@@ -1,0 +1,46 @@
+name: keyfinder
+description: "A new Flutter project."
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  # Ajustado para o formato padrão para garantir compatibilidade
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6 # Sua versão pode ser diferente, não tem problema
+
+  # LINHA ADICIONADA: Aqui está a dependência que faltava.
+  # A indentação (2 espaços) é muito importante.
+  permission_handler: ^11.3.1
+  fl_chart: ^0.66.2
+  provider: ^6.1.2
+  shared_preferences: ^2.2.3
+  sqflite: ^2.3.3
+  path_provider: ^2.1.3
+  intl: ^0.19.0
+  vibration: ^3.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/logo.png
+
+# ADICIONE ESTE BLOCO INTEIRO NO FINAL DO ARQUIVO:
+flutter_launcher_icons:
+  android: "launcher_icon" # Nome padrão para o ícone Android
+  ios: true                # Já deixa preparado para o futuro
+  image_path: "assets/images/logo.png" # MUITO IMPORTANTE: O caminho para a sua logo!
+  min_sdk_android: 21      # Necessário para os ícones adaptativos modernos
