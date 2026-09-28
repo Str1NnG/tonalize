@@ -40,9 +40,21 @@ class AudioService {
     });
   }
 
-  Future<void> startKey({required int sensitivity}) => _control.invokeMethod(
+  Future<void> startKey({
+    required int sensitivity,
+    int? harmonics,
+    double? peakThreshold,
+    double? minTonalness,
+  }) =>
+      _control.invokeMethod(
         'start',
-        {'mode': 'key', 'sensitivity': sensitivity},
+        {
+          'mode': 'key',
+          'sensitivity': sensitivity,
+          if (harmonics != null) 'harmonics': harmonics,
+          if (peakThreshold != null) 'peakThreshold': peakThreshold,
+          if (minTonalness != null) 'minTonalness': minTonalness,
+        },
       );
 
   Future<void> startTuner() => _control.invokeMethod(

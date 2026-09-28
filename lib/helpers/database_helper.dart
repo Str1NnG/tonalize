@@ -54,7 +54,7 @@ class DatabaseHelper {
     final path = join(documentsDirectory.path, 'keyfinder.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -71,12 +71,50 @@ class DatabaseHelper {
         answer TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE readings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sessionId TEXT NOT NULL,
+        ts REAL NOT NULL,
+        displayed TEXT NOT NULL,
+        best TEXT NOT NULL,
+        rBest REAL NOT NULL,
+        rDisplayed REAL NOT NULL,
+        challenge TEXT NOT NULL,
+        config TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('DROP TABLE IF EXISTS history');
-      await _onCreate(db, newVersion);
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS field_log(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          dateTime TEXT NOT NULL,
+          keyShown TEXT NOT NULL,
+          secondShown TEXT NOT NULL,
+          confidence REAL NOT NULL,
+          answer TEXT NOT NULL
+        )
+      ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS readings(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sessionId TEXT NOT NULL,
+          ts REAL NOT NULL,
+          displayed TEXT NOT NULL,
+          best TEXT NOT NULL,
+          rBest REAL NOT NULL,
+          rDisplayed REAL NOT NULL,
+          challenge TEXT NOT NULL,
+          config TEXT NOT NULL
+        )
+      ''');
     }
   }
 
@@ -107,5 +145,60 @@ class DatabaseHelper {
   Future<void> clearFieldEntries() async {
     final db = await database;
     await db.delete('field_log');
+  }
+
+  // Métodos para readings da avaliação de pesquisa (Fase 4.2)
+  Future<int> addReading({
+    required String sessionId,
+    required double ts,
+    required String displayed,
+    required String best,
+    required double rBest,
+    required double rDisplayed,
+    required String challenge,
+    required String config,
+  }) async {
+    final db = await database;
+    return await db.insert('readings', {
+      'sessionId': sessionId,
+      'ts': ts,
+      'displayed': displayed,
+      'best': best,
+      'rBest': rBest,
+      'rDisplayed': rDisplayed,
+      'challenge': challenge,
+      'config': config,
+    });
+  }
+
+  Future<String?> getLastSessionId() async {
+    final db = await database;
+    final res = await db.rawQuery('SELECT sessionId FROM readings ORDER BY id DESC LIMIT 1');
+    if (res.isNotEmpty) {
+      return res.first['sessionId'] as String?;
+    }
+    return null;
+  }
+
+  Future<String> exportReadingsCsv([String? sessionId]) async {
+    final db = await database;
+    final targetSession = sessionId ?? await getLastSessionId();
+    if (targetSession == null) return '';
+
+    final rows = await db.query(
+      'readings',
+      where: 'sessionId = ?',
+      whereArgs: [targetSession],
+      orderBy: 'ts ASC',
+    );
+
+    final buffer = StringBuffer();
+    buffer.writeln('sessionId,ts,displayed,best,rBest,rDisplayed,challenge,config');
+    for (final r in rows) {
+      buffer.writeln(
+        '${r['sessionId']},${r['ts']},${r['displayed']},${r['best']},${r['rBest']},${r['rDisplayed']},${r['challenge']},${r['config']}',
+      );
+    }
+    return buffer.toString();
   }
 }
