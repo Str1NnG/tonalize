@@ -1,33 +1,44 @@
-// ARQUIVO ATUALIZADO: lib/helpers/database_helper.dart
-
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import '../screens/key_analysis_screen.dart';
+import 'package:sqflite/sqflite.dart';
 
-class AnalysisHistory {
+class FieldEntry {
   final int? id;
-  final String keyName;
-  final double confidence;
-  final String predominantNotes;
   final String dateTime;
+  final String keyShown;
+  final String secondShown;
+  final double confidence;
+  final String answer; // 'acertou' | 'errou'
 
-  AnalysisHistory({
+  const FieldEntry({
     this.id,
-    required this.keyName,
-    required this.confidence,
-    required this.predominantNotes,
     required this.dateTime,
+    required this.keyShown,
+    required this.secondShown,
+    required this.confidence,
+    required this.answer,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'keyName': keyName,
-      'confidence': confidence,
-      'predominantNotes': predominantNotes,
       'dateTime': dateTime,
+      'keyShown': keyShown,
+      'secondShown': secondShown,
+      'confidence': confidence,
+      'answer': answer,
     };
+  }
+
+  factory FieldEntry.fromMap(Map<String, dynamic> map) {
+    return FieldEntry(
+      id: map['id'] as int?,
+      dateTime: map['dateTime'] as String,
+      keyShown: map['keyShown'] as String,
+      secondShown: map['secondShown'] as String,
+      confidence: (map['confidence'] as num).toDouble(),
+      answer: map['answer'] as String,
+    );
   }
 }
 
@@ -43,64 +54,58 @@ class DatabaseHelper {
     final path = join(documentsDirectory.path, 'keyfinder.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
-  Future _onCreate(Database db, int version) async {
+  Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE history(
+      CREATE TABLE field_log(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        keyName TEXT NOT NULL,
+        dateTime TEXT NOT NULL,
+        keyShown TEXT NOT NULL,
+        secondShown TEXT NOT NULL,
         confidence REAL NOT NULL,
-        predominantNotes TEXT NOT NULL,
-        dateTime TEXT NOT NULL
+        answer TEXT NOT NULL
       )
     ''');
   }
 
-  Future<void> addAnalysis(KeyAnalysisResult result) async {
-    final db = await instance.database;
-    await db.insert(
-      'history',
-      AnalysisHistory(
-        keyName: result.keyName,
-        confidence: result.confidence,
-        predominantNotes: result.predominantNotes.join(', '),
-        dateTime: DateTime.now().toIso8601String(),
-      ).toMap(),
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('DROP TABLE IF EXISTS history');
+      await _onCreate(db, newVersion);
+    }
+  }
+
+  Future<int> addFieldEntry(FieldEntry entry) async {
+    final db = await database;
+    return await db.insert(
+      'field_log',
+      entry.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  Future<List<AnalysisHistory>> getHistory() async {
-    final db = await instance.database;
-    final maps = await db.query('history', orderBy: 'id DESC');
-    return List.generate(maps.length, (i) {
-      return AnalysisHistory(
-        id: maps[i]['id'] as int,
-        keyName: maps[i]['keyName'] as String,
-        confidence: maps[i]['confidence'] as double,
-        predominantNotes: maps[i]['predominantNotes'] as String,
-        dateTime: maps[i]['dateTime'] as String,
-      );
-    });
+  Future<List<FieldEntry>> getFieldEntries() async {
+    final db = await database;
+    final maps = await db.query('field_log', orderBy: 'id DESC');
+    return maps.map((m) => FieldEntry.fromMap(m)).toList();
   }
 
-  // MUDANÇA 1: NOVA FUNÇÃO PARA APAGAR UM ITEM
-  Future<void> deleteAnalysis(int id) async {
-    final db = await instance.database;
+  Future<void> deleteFieldEntry(int id) async {
+    final db = await database;
     await db.delete(
-      'history',
+      'field_log',
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 
-  // MUDANÇA 2: NOVA FUNÇÃO PARA LIMPAR TODO O HISTÓRICO
-  Future<void> clearHistory() async {
-    final db = await instance.database;
-    await db.delete('history');
+  Future<void> clearFieldEntries() async {
+    final db = await database;
+    await db.delete('field_log');
   }
 }

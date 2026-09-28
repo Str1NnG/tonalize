@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/key_profiles.dart';
 import '../core/tonal_engine.dart';
+import '../helpers/database_helper.dart';
 import '../services/audio_service.dart';
 import '../widgets/chroma_bars.dart';
 
@@ -21,6 +23,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
   final Stopwatch _stopwatch = Stopwatch();
 
   bool _isListening = false;
+  bool _fieldMode = false;
   Sensitivity _sensitivity = Sensitivity.medio;
   StreamSubscription<ChromaFrame>? _chromaSubscription;
   Timer? _evalTimer;
@@ -30,6 +33,16 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadFieldMode();
+  }
+
+  Future<void> _loadFieldMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _fieldMode = prefs.getBool('field_mode') ?? false;
+      });
+    }
   }
 
   @override
@@ -116,6 +129,33 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     }
   }
 
+  Future<void> _recordFieldAnswer(String answer) async {
+    final displayedKey = _engine.displayed;
+    if (displayedKey == null) return;
+
+    final entry = FieldEntry(
+      dateTime: DateTime.now().toIso8601String(),
+      keyShown: displayedKey.label,
+      secondShown: _currentReading?.second.label ?? '--',
+      confidence: _currentReading?.confidence ?? 0.0,
+      answer: answer,
+    );
+
+    await DatabaseHelper.instance.addFieldEntry(entry);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Avaliação gravada: ${displayedKey.label} ($answer)',
+          ),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _showSensitivityDialog() {
     showDialog(
       context: context,
@@ -188,7 +228,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             // Seção Superior: Tonalidade Detectada
             Expanded(
               flex: 4,
@@ -199,24 +239,24 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                     Text(
                       keyTonic,
                       style: TextStyle(
-                        fontSize: keyTonic.length > 3 ? 56 : 100,
+                        fontSize: keyTonic.length > 3 ? 52 : 96,
                         fontWeight: FontWeight.bold,
                         color: theme.colorScheme.primary,
                         height: 1.0,
                       ),
                     ),
                     if (keyMode.isNotEmpty) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         keyMode,
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 26,
                           color: theme.textTheme.bodyMedium?.color,
                           letterSpacing: 1.5,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
                     // 2ª Opção
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -224,20 +264,20 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                         Text(
                           "2ª opção: ",
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: theme.textTheme.bodySmall?.color,
                           ),
                         ),
                         Text(
                           secondOption,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
                     // Barra de Confiança
                     SizedBox(
                       width: 180,
@@ -250,7 +290,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                           valueColor: AlwaysStoppedAnimation<Color>(
                             theme.colorScheme.primary,
                           ),
-                          minHeight: 8,
+                          minHeight: 7,
                         ),
                       ),
                     ),
@@ -259,6 +299,47 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                       "${(confidence * 100).toStringAsFixed(0)}% de confiança",
                       style: theme.textTheme.bodySmall,
                     ),
+
+                    // Botões de Validação de Campo (RF06)
+                    if (_fieldMode && displayedKey != null) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FilledButton.tonalIcon(
+                            icon: const Icon(
+                              Icons.check_circle_outline,
+                              color: Colors.green,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Acertou',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            onPressed: () => _recordFieldAnswer('acertou'),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton.tonalIcon(
+                            icon: const Icon(
+                              Icons.cancel_outlined,
+                              color: Colors.red,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'Errou',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            onPressed: () => _recordFieldAnswer('errou'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -295,7 +376,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
 
             // Seção Inferior: Controles (Iniciar/Parar e Reiniciar)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -303,7 +384,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                   IconButton.filledTonal(
                     icon: const Icon(Icons.refresh_rounded),
                     tooltip: 'Reiniciar leitura',
-                    iconSize: 32,
+                    iconSize: 30,
                     onPressed: _isListening ? _resetAnalysis : null,
                   ),
                   const SizedBox(width: 24),
@@ -312,8 +393,8 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                     onTap: _toggleListening,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      width: 88,
-                      height: 88,
+                      width: 84,
+                      height: 84,
                       decoration: BoxDecoration(
                         color: _isListening
                             ? Colors.red.shade700
@@ -335,14 +416,13 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                           _isListening
                               ? Icons.stop_rounded
                               : Icons.mic_rounded,
-                          size: 46,
+                          size: 42,
                           color: Colors.white,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 24),
-                  // Espaço para balanceamento simétrico
                   const SizedBox(width: 48),
                 ],
               ),
