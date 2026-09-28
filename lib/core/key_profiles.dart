@@ -46,6 +46,38 @@ const List<double> kkMinor = [
   3.17
 ];
 
+/// Perfis de Temperley (1999), alternativa aos de Krumhansl-Kessler para a calibração.
+const List<double> temperleyMajor = [
+  5.0,
+  2.0,
+  3.5,
+  2.0,
+  4.5,
+  4.0,
+  2.0,
+  4.5,
+  2.0,
+  3.5,
+  1.5,
+  4.0
+];
+const List<double> temperleyMinor = [
+  5.0,
+  2.0,
+  3.5,
+  4.5,
+  2.0,
+  4.0,
+  2.0,
+  4.5,
+  3.5,
+  2.0,
+  1.5,
+  4.0
+];
+
+enum ProfileSet { krumhansl, temperley }
+
 /// Perfil da tonalidade cuja tônica é [tonic]: rotação circular. profile[tonic] recebe base[0].
 List<double> rotated(List<double> base, int tonic) =>
     List<double>.generate(12, (j) => base[(j - tonic + 12) % 12]);

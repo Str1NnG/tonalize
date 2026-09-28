@@ -1,153 +1,127 @@
 import 'dart:math' as math;
+import 'chroma_accumulator.dart';
 import 'key_profiles.dart';
+import 'key_scorer.dart';
+import 'key_stabilizer.dart';
+
+export 'chroma_accumulator.dart';
+export 'key_profiles.dart';
+export 'key_scorer.dart';
+export 'key_stabilizer.dart';
 
 class TonalReading {
-  final KeyCandidate best;
-  final KeyCandidate second;
-  final double confidence; // 0..1, a partir da diferença best.r - second.r
-  final List<double> profile; // 12 valores, normalizados para máximo 1 (para as barras)
+  final KeyCandidate? displayed; // o que o letreiro mostra
+  final KeyCandidate best; // vencedor bruto desta avaliação
+  final KeyCandidate second; // melhor candidata diferente da exibida (2ª opção)
+  final List<KeyCandidate> nearby; // as 3 melhores diferentes da exibida ("tons próximos")
+  final double confidence; // (r da exibida - r da melhor outra) / fullConfidenceGap, 0..1
+  final List<double> profile; // 12 valores normalizados para máximo 1 (barras)
+  final Challenge? challenge; // desafio em andamento, para o indicador "confirmando..."
   final double secondsInWindow;
+  final bool autoReset; // true na avaliação em que houve reinício por silêncio
 
   const TonalReading({
+    this.displayed,
     required this.best,
     required this.second,
+    required this.nearby,
     required this.confidence,
     required this.profile,
+    this.challenge,
     required this.secondsInWindow,
+    this.autoReset = false,
   });
-}
-
-class _TimestampedFrame {
-  final Duration at;
-  final List<double> chroma;
-  const _TimestampedFrame(this.at, this.chroma);
 }
 
 class TonalEngine {
-  final double windowSeconds;
-  final int stabilityCount;
-  final double minSeconds;
+  TonalEngine({
+    ChromaAccumulator? accumulator,
+    KeyStabilizer? stabilizer,
+    KeyScorer? scorer,
+    this.fullConfidenceGap = 0.25,
+  })  : accumulator = accumulator ?? ChromaAccumulator(),
+        stabilizer = stabilizer ?? KeyStabilizer(),
+        scorer = scorer ?? KeyScorer();
+
+  final ChromaAccumulator accumulator;
+  final KeyStabilizer stabilizer;
+  final KeyScorer scorer;
   final double fullConfidenceGap;
 
-  final List<_TimestampedFrame> _frames = [];
-
-  KeyCandidate? _displayed;
-  KeyCandidate? _candidate;
-  int _candidateCount = 0;
+  bool _justAutoReset = false;
   TonalReading? _lastReading;
 
-  TonalEngine({
-    this.windowSeconds = 10,
-    this.stabilityCount = 3,
-    this.minSeconds = 2,
-    this.fullConfidenceGap = 0.25,
-  });
-
-  /// Tonalidade exibida na tela (só muda pela regra de estabilidade).
-  KeyCandidate? get displayed => _displayed;
-
-  /// Última leitura bruta (para segunda opção, confiança e barras).
+  KeyCandidate? get displayed => stabilizer.displayed;
   TonalReading? get lastReading => _lastReading;
+  int get switches => stabilizer.switches;
 
-  /// Adiciona um frame de 12 valores com seu timestamp.
   void addFrame(List<double> chroma, Duration at) {
     if (chroma.length != 12) return;
-    _frames.add(_TimestampedFrame(at, List<double>.from(chroma)));
+    final didReset = accumulator.add(chroma, at);
+    if (didReset) {
+      stabilizer.reset();
+      _justAutoReset = true;
+    }
   }
 
-  /// Avalia a janela atual e atualiza a tonalidade exibida e a última leitura.
   TonalReading? evaluate(Duration now) {
-    final windowMicros = (windowSeconds * 1000000).round();
-    _frames.removeWhere((f) => (now - f.at).inMicroseconds > windowMicros);
+    if (accumulator.gapExceeded(now)) {
+      reset();
+      return null;
+    }
+    final rawProfile = accumulator.profile(now);
+    if (rawProfile == null) return null;
 
-    if (_frames.isEmpty) {
-      _lastReading = null;
+    final maxVal = rawProfile.reduce(math.max);
+    final minVal = rawProfile.reduce(math.min);
+    if (maxVal <= 0 || (maxVal - minVal).abs() < 1e-6) {
       return null;
     }
 
-    // 2. Soma dos frames por posição
-    final sumProfile = List<double>.filled(12, 0.0);
-    for (final frame in _frames) {
-      for (var i = 0; i < 12; i++) {
-        sumProfile[i] += frame.chroma[i];
-      }
-    }
+    final scores = scorer.score(rawProfile);
+    if (scores.isEmpty) return null;
 
-    final totalSum = sumProfile.reduce((a, b) => a + b);
-    final allEqual = sumProfile.every((v) => v == sumProfile.first);
-    if (totalSum <= 0 || allEqual) {
-      _lastReading = null;
-      return null;
-    }
+    stabilizer.update(now, scores, accumulator.secondsInWindow);
 
-    // 3. Calcular as 24 correlações (12 maiores, 12 menores)
-    final candidates = <KeyCandidate>[];
-    for (var tonic = 0; tonic < 12; tonic++) {
-      final rMajor = pearson(sumProfile, rotated(kkMajor, tonic));
-      candidates.add(KeyCandidate(tonic, true, rMajor));
+    final best = scores.first;
+    final displayedKey = stabilizer.displayed;
 
-      final rMinor = pearson(sumProfile, rotated(kkMinor, tonic));
-      candidates.add(KeyCandidate(tonic, false, rMinor));
-    }
+    // second e nearby são candidatas diferentes da exibida (ou de best se exibida for null)
+    final refKey = displayedKey ?? best;
+    final others = scores.where((c) => !c.sameKey(refKey)).toList();
+    final second = others.isNotEmpty ? others.first : best;
+    final nearby = others.take(3).toList();
 
-    // 4. Ordenar por r decrescente
-    candidates.sort((a, b) => b.r.compareTo(a.r));
-    final best = candidates[0];
-    final second = candidates[1];
+    // confidence: usa o r da exibida (ou de best se ainda não houver exibida)
+    final refR = refKey.r;
+    final otherR = second.r;
+    final confidence = ((refR - otherR) / fullConfidenceGap).clamp(0.0, 1.0);
 
-    final confidence = (best.r <= 0)
-        ? 0.0
-        : ((best.r - second.r) / fullConfidenceGap).clamp(0.0, 1.0);
-
-    // 6. secondsInWindow
-    final secondsInWindow = _frames.length <= 1
-        ? 0.0
-        : (_frames.last.at - _frames.first.at).inMicroseconds / 1000000.0;
-
-    // 5. Regra de estabilidade
-    if (_displayed == null) {
-      if (secondsInWindow >= minSeconds) {
-        _displayed = best;
-      }
-    } else if (best.sameKey(_displayed)) {
-      _candidate = null;
-      _candidateCount = 0;
-    } else if (best.sameKey(_candidate)) {
-      _candidateCount++;
-      if (_candidateCount >= stabilityCount) {
-        _displayed = best;
-        _candidate = null;
-        _candidateCount = 0;
-      }
-    } else {
-      _candidate = best;
-      _candidateCount = 1;
-    }
-
-    // Perfil normalizado para máximo 1 (para visualização nas 12 barras)
-    final maxVal = sumProfile.reduce(math.max);
-    final normalizedProfile = maxVal > 0
-        ? sumProfile.map((v) => v / maxVal).toList()
+    final normProfile = maxVal > 0
+        ? rawProfile.map((v) => (v / maxVal).clamp(0.0, 1.0)).toList()
         : List<double>.filled(12, 0.0);
 
     final reading = TonalReading(
+      displayed: displayedKey,
       best: best,
       second: second,
+      nearby: nearby,
       confidence: confidence,
-      profile: normalizedProfile,
-      secondsInWindow: secondsInWindow,
+      profile: normProfile,
+      challenge: stabilizer.challenge,
+      secondsInWindow: accumulator.secondsInWindow,
+      autoReset: _justAutoReset,
     );
 
+    _justAutoReset = false;
     _lastReading = reading;
     return reading;
   }
 
-  /// RF05: zera janela, exibida, candidata e última leitura.
   void reset() {
-    _frames.clear();
-    _displayed = null;
-    _candidate = null;
-    _candidateCount = 0;
+    accumulator.clear();
+    stabilizer.reset();
     _lastReading = null;
+    _justAutoReset = false;
   }
 }
