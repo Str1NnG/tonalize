@@ -66,4 +66,5 @@ dependencies {
     implementation("androidx.annotation:annotation:1.8.1")
     // Mantendo o .jar local, como você pediu
     implementation(files("libs/TarsosDSP-Android-2.4.jar"))
+    testImplementation("junit:junit:4.13.2")
 }
