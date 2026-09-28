@@ -1,30 +1,50 @@
-// ARQUIVO FINAL: lib/screens/tuner_screen.dart
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:math' as math;
-import 'dart:collection';
-import 'package:vibration/vibration.dart';
 import 'dart:async';
+import 'dart:collection';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:vibration/vibration.dart';
+import '../services/audio_service.dart';
 
 class PitchData {
   final String note;
   final String octave;
   final int cents;
   final double hertz;
-  PitchData({required this.note, required this.octave, required this.cents, required this.hertz});
+  PitchData({
+    required this.note,
+    required this.octave,
+    required this.cents,
+    required this.hertz,
+  });
 }
 
 class TunerScreen extends StatefulWidget {
   const TunerScreen({super.key});
+
   @override
   State<TunerScreen> createState() => _TunerScreenState();
 }
 
-class _TunerScreenState extends State<TunerScreen> with SingleTickerProviderStateMixin {
-  static const _channel = MethodChannel('keyfinder');
+class _TunerScreenState extends State<TunerScreen>
+    with SingleTickerProviderStateMixin {
+  final AudioService _audioService = AudioService();
+  StreamSubscription<PitchEvent>? _pitchSubscription;
+
   PitchData? _pitchData;
-  final List<String> _notes = const ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  final List<String> _notes = const [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B"
+  ];
   late AnimationController _animationController;
   Animation<double>? _centsAnimation;
   final Queue<double> _hzHistory = Queue<double>();
@@ -40,70 +60,85 @@ class _TunerScreenState extends State<TunerScreen> with SingleTickerProviderStat
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _channel.setMethodCallHandler(_handlePlatformCall);
-    _startListening();
+    _startTuning();
   }
 
   @override
   void dispose() {
-    _stopListening();
+    _stopTuning();
     _animationController.dispose();
     _idleTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _startListening() async {
-    try { await _channel.invokeMethod('startListening', {'sensitivity': 1, 'playbackEnabled': false}); }
-    on PlatformException catch (e) { print("Falha ao iniciar a escuta: '${e.message}'.");}
+  void _startTuning() {
+    _pitchSubscription?.cancel();
+    _pitchSubscription = _audioService.pitchStream().listen(
+      _handlePitchEvent,
+      onError: (err) {
+        debugPrint("Erro no stream do afinador: $err");
+      },
+    );
+    _audioService.startTuner();
   }
 
-  Future<void> _stopListening() async {
-    try { await _channel.invokeMethod('stopListening'); }
-    on PlatformException catch (e) { print("Falha ao parar a escuta: '${e.message}'."); }
+  void _stopTuning() {
+    _pitchSubscription?.cancel();
+    _pitchSubscription = null;
+    _audioService.stop();
   }
 
-  Future<dynamic> _handlePlatformCall(MethodCall call) async {
-    if (call.method == 'pitchDetected' && mounted) {
-      _idleTimer?.cancel();
+  Future<void> _handlePitchEvent(PitchEvent event) async {
+    if (!mounted) return;
+    _idleTimer?.cancel();
 
-      final double pitchInHz = call.arguments;
-      _hzHistory.add(pitchInHz);
-      if (_hzHistory.length > _hzHistorySize) { _hzHistory.removeFirst(); }
-      final double averageHz = _hzHistory.reduce((a, b) => a + b) / _hzHistory.length;
+    final double pitchInHz = event.hz;
+    _hzHistory.add(pitchInHz);
+    if (_hzHistory.length > _hzHistorySize) {
+      _hzHistory.removeFirst();
+    }
+    final double averageHz =
+        _hzHistory.reduce((a, b) => a + b) / _hzHistory.length;
 
-      final newPitchData = _convertHzToPitchData(averageHz);
+    final newPitchData = _convertHzToPitchData(averageHz);
 
-      if (newPitchData != null) {
-        final currentCents = _centsAnimation?.value ?? newPitchData.cents.toDouble();
-        _centsAnimation = Tween<double>(begin: currentCents, end: newPitchData.cents.clamp(-50.0, 50.0).toDouble())
-            .animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOut));
-        _animationController.forward(from: 0.0);
+    if (newPitchData != null) {
+      final currentCents =
+          _centsAnimation?.value ?? newPitchData.cents.toDouble();
+      _centsAnimation = Tween<double>(
+        begin: currentCents,
+        end: newPitchData.cents.clamp(-50.0, 50.0).toDouble(),
+      ).animate(
+        CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+      );
+      _animationController.forward(from: 0.0);
 
-        final isNowTuned = newPitchData.cents.abs() < 5;
-        if (isNowTuned && !_wasTunedPreviously) {
-          bool? hasVibrator = await Vibration.hasVibrator();
-          if (hasVibrator ?? false) { Vibration.vibrate(duration: 50, amplitude: 128); }
+      final isNowTuned = newPitchData.cents.abs() < 5;
+      if (isNowTuned && !_wasTunedPreviously) {
+        bool? hasVibrator = await Vibration.hasVibrator();
+        if (hasVibrator ?? false) {
+          Vibration.vibrate(duration: 50, amplitude: 128);
         }
-        _wasTunedPreviously = isNowTuned;
-      } else {
-        _wasTunedPreviously = false;
       }
+      _wasTunedPreviously = isNowTuned;
+    } else {
+      _wasTunedPreviously = false;
+    }
 
-      if (mounted) {
-        setState(() {
-          _pitchData = newPitchData ?? _pitchData;
-          _isActivelyDetecting = newPitchData != null;
-        });
-      }
-
-      _idleTimer = Timer(const Duration(milliseconds: 1500), () {
-        if (mounted) {
-          setState(() {
-            _isActivelyDetecting = false;
-          });
-        }
+    if (mounted) {
+      setState(() {
+        _pitchData = newPitchData ?? _pitchData;
+        _isActivelyDetecting = newPitchData != null;
       });
     }
+
+    _idleTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() {
+          _isActivelyDetecting = false;
+        });
+      }
+    });
   }
 
   PitchData? _convertHzToPitchData(double hz) {
@@ -111,15 +146,24 @@ class _TunerScreenState extends State<TunerScreen> with SingleTickerProviderStat
     final double midiNote = 12 * (math.log(hz / 440) / math.log(2)) + 69;
     final int midiNoteRounded = midiNote.round();
     final int octave = (midiNoteRounded / 12).floor() - 1;
-    final String noteName = _notes[midiNoteRounded % 12];
-    final double perfectFrequency = 440 * math.pow(2, (midiNoteRounded - 69) / 12).toDouble();
-    final int cents = (1200 * math.log(hz / perfectFrequency) / math.log(2)).round();
-    return PitchData(note: noteName, octave: octave.toString(), cents: cents, hertz: hz);
+    final String noteName = _notes[((midiNoteRounded % 12) + 12) % 12];
+    final double perfectFrequency =
+        440 * math.pow(2, (midiNoteRounded - 69) / 12).toDouble();
+    final int cents =
+        (1200 * math.log(hz / perfectFrequency) / math.log(2)).round();
+    return PitchData(
+      note: noteName,
+      octave: octave.toString(),
+      cents: cents,
+      hertz: hz,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isTuned = _isActivelyDetecting && _pitchData != null && _pitchData!.cents.abs() < 5;
+    final bool isTuned = _isActivelyDetecting &&
+        _pitchData != null &&
+        _pitchData!.cents.abs() < 5;
 
     final Color inactiveColor = Colors.grey.shade600;
     final Color outOfTuneColor = Colors.orange.shade400;
@@ -140,7 +184,11 @@ class _TunerScreenState extends State<TunerScreen> with SingleTickerProviderStat
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Afinador"), backgroundColor: Colors.transparent, elevation: 0),
+      appBar: AppBar(
+        title: const Text("Afinador"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Column(
         children: [
           const Spacer(flex: 2),
@@ -152,9 +200,6 @@ class _TunerScreenState extends State<TunerScreen> with SingleTickerProviderStat
               builder: (context, child) {
                 return CustomPaint(
                   painter: TunerArcPainter(
-                    // AQUI ESTÁ A CORREÇÃO FINAL:
-                    // O ponteiro sempre usa o valor da animação, que "congela" no lugar
-                    // quando a detecção para.
                     pointerAngle: _centsAnimation?.value ?? 0.0,
                     arcColor: arcFillColor,
                     pointerColor: pointerColor,
@@ -170,11 +215,20 @@ class _TunerScreenState extends State<TunerScreen> with SingleTickerProviderStat
             children: [
               Text(
                 _pitchData?.note ?? '--',
-                style: TextStyle(fontSize: 120, fontWeight: FontWeight.bold, color: pointerColor, height: 1.0),
+                style: TextStyle(
+                  fontSize: 120,
+                  fontWeight: FontWeight.bold,
+                  color: pointerColor,
+                  height: 1.0,
+                ),
               ),
               Text(
                 _pitchData?.octave ?? '',
-                style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: pointerColor),
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color: pointerColor,
+                ),
               ),
             ],
           ),
@@ -187,16 +241,26 @@ class _TunerScreenState extends State<TunerScreen> with SingleTickerProviderStat
                 if (_isActivelyDetecting && !isTuned && _pitchData != null)
                   Text(
                     "${_pitchData!.cents > 0 ? '+' : ''}${_pitchData!.cents} cents",
-                    style: TextStyle(color: pointerColor, fontSize: 22, fontWeight: FontWeight.w300),
+                    style: TextStyle(
+                      color: pointerColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w300,
+                    ),
                   ),
                 const SizedBox(height: 5),
                 Text(
-                  _pitchData != null ? "${_pitchData!.hertz.toStringAsFixed(2)} Hz" : "Aguardando som...",
-                  style: TextStyle(color: _isActivelyDetecting ? pointerColor : Colors.white70, fontSize: 20),
+                  _pitchData != null
+                      ? "${_pitchData!.hertz.toStringAsFixed(2)} Hz"
+                      : "Aguardando som...",
+                  style: TextStyle(
+                    color: _isActivelyDetecting ? pointerColor : Colors.white70,
+                    fontSize: 20,
+                  ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 30),
         ],
       ),
     );
@@ -208,7 +272,11 @@ class TunerArcPainter extends CustomPainter {
   final Color arcColor;
   final Color pointerColor;
 
-  TunerArcPainter({required this.pointerAngle, required this.arcColor, required this.pointerColor});
+  TunerArcPainter({
+    required this.pointerAngle,
+    required this.arcColor,
+    required this.pointerColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -222,7 +290,13 @@ class TunerArcPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.butt;
-    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle, sweepAngle, false, borderPaint);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+      borderPaint,
+    );
 
     if (arcColor != Colors.transparent) {
       final fillPaint = Paint()
@@ -230,10 +304,17 @@ class TunerArcPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8
         ..strokeCap = StrokeCap.butt;
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle, sweepAngle, false, fillPaint);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        fillPaint,
+      );
     }
 
-    final double centsAsAngle = pointerAngle.clamp(-50, 50) * (math.pi / 2.5) / 50;
+    final double centsAsAngle =
+        pointerAngle.clamp(-50, 50) * (math.pi / 2.5) / 50;
     final angle = -(math.pi / 2) + centsAsAngle;
 
     final needlePaint = Paint()
@@ -251,6 +332,8 @@ class TunerArcPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant TunerArcPainter oldDelegate) {
-    return oldDelegate.pointerAngle != pointerAngle || oldDelegate.arcColor != arcColor || oldDelegate.pointerColor != pointerColor;
+    return oldDelegate.pointerAngle != pointerAngle ||
+        oldDelegate.arcColor != arcColor ||
+        oldDelegate.pointerColor != pointerColor;
   }
 }
