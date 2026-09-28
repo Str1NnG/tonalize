@@ -1,386 +1,146 @@
-// ARQUIVO ATUALIZADO: lib/screens/key_analysis_screen.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:math' as math;
-import '../helpers/database_helper.dart';
+import '../core/key_profiles.dart';
+import '../core/tonal_engine.dart';
+import '../services/audio_service.dart';
+import '../widgets/chroma_bars.dart';
 
 enum Sensitivity { baixo, medio, alto }
 
-class KeyAnalysisResult {
-  final String keyName;
-  final double confidence;
-  final List<String> predominantNotes;
-  KeyAnalysisResult({required this.keyName, required this.confidence, required this.predominantNotes});
-}
-
 class KeyAnalysisScreen extends StatefulWidget {
   const KeyAnalysisScreen({super.key});
+
   @override
   State<KeyAnalysisScreen> createState() => _KeyAnalysisScreenState();
 }
 
-class _KeyAnalysisScreenState extends State<KeyAnalysisScreen> {
-  // Toda a lógica de detecção e estado permanece a mesma.
-  // As mudanças são apenas no método build().
-  static const _channel = MethodChannel('keyfinder');
-  final List<String> _notes = const ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  static const List<double> _krumhanslMajorProfile = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
-  static const List<double> _krumhanslMinorProfile = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
+    with WidgetsBindingObserver {
+  final AudioService _audioService = AudioService();
+  final TonalEngine _engine = TonalEngine();
+  final Stopwatch _stopwatch = Stopwatch();
+
   bool _isListening = false;
-  List<String> _detectedNotesHistory = [];
-  Map<String, int> _noteCounts = {};
-  KeyAnalysisResult? _analysisResult;
-  Timer? _analysisTimer;
-  double _detectionInterval = 10.0;
-  Set<Sensitivity> _sensitivitySelection = {Sensitivity.medio};
-  bool _isPlaybackEnabled = false;
-  String? _potentialNote;
-  int _consecutiveDetections = 0;
-  final int _requiredDetections = 6;
+  Sensitivity _sensitivity = Sensitivity.medio;
+  StreamSubscription<ChromaFrame>? _chromaSubscription;
+  Timer? _evalTimer;
+  TonalReading? _currentReading;
 
   @override
   void initState() {
     super.initState();
-    _channel.setMethodCallHandler(_handlePlatformCall);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stopListening();
-    _analysisTimer?.cancel();
     super.dispose();
   }
 
-  void _toggleListening() {
-    setState(() {
-      _isListening = !_isListening;
-      if (_isListening) {
-        _detectedNotesHistory.clear();
-        _noteCounts.clear();
-        _analysisResult = null;
-        _potentialNote = null;
-        _consecutiveDetections = 0;
-        _startListening();
-        _analysisTimer = Timer.periodic(Duration(seconds: _detectionInterval.toInt()), (timer) {
-          if (_isListening) _analyzeNotes();
-        });
-      } else {
-        _stopListening();
-        _analysisTimer?.cancel();
-      }
-    });
-  }
-
-  Future<void> _startListening() async {
-    final sensitivityLevel = _sensitivitySelection.first.index;
-    try {
-      await _channel.invokeMethod('startListening', {'sensitivity': sensitivityLevel, 'playbackEnabled': _isPlaybackEnabled});
-    } on PlatformException catch (e) {
-      print("Falha ao iniciar a escuta: '${e.message}'.");
-    }
-  }
-
-  Future<void> _stopListening() async => await _channel.invokeMethod('stopListening');
-
-  Future<dynamic> _handlePlatformCall(MethodCall call) async {
-    if (call.method == 'pitchDetected' && _isListening && mounted) {
-      final double pitchInHz = call.arguments;
-      final String currentNoteName = _convertHzToNote(pitchInHz);
-      if (currentNoteName.isEmpty) return;
-      if (currentNoteName == _potentialNote) {
-        _consecutiveDetections++;
-      } else {
-        _potentialNote = currentNoteName;
-        _consecutiveDetections = 1;
-      }
-      if (_consecutiveDetections >= _requiredDetections) {
-        if (_detectedNotesHistory.isEmpty || _detectedNotesHistory.last != _potentialNote) {
-          setState(() {
-            _detectedNotesHistory.add(_potentialNote!);
-            _noteCounts[_potentialNote!] = (_noteCounts[_potentialNote!] ?? 0) + 1;
-            if (_detectedNotesHistory.length > 50) {
-              final oldNote = _detectedNotesHistory.removeAt(0);
-              _noteCounts.update(oldNote, (value) => value > 1 ? value - 1 : 0);
-            }
-          });
-        }
-        _consecutiveDetections = 0;
-      }
-    }
-  }
-
-  String _convertHzToNote(double hz) {
-    if (hz <= 0) return "";
-    final double midiNote = 12 * (math.log(hz / 440) / math.log(2)) + 69;
-    return _notes[midiNote.round() % 12];
-  }
-
-  void _analyzeNotes() {
-    if (_detectedNotesHistory.toSet().length < 3) return;
-    final musicProfile = List<double>.filled(12, 0);
-    _noteCounts.forEach((note, count) {
-      int index = _notes.indexOf(note);
-      if (index != -1) { musicProfile[index] = count.toDouble(); }
-    });
-    String bestKey = 'N/A';
-    double bestCorrelation = -1.0;
-    for (int i = 0; i < 12; i++) {
-      final majorProfileShifted = _rotateProfile(_krumhanslMajorProfile, i);
-      final majorCorrelation = _calculateCorrelation(musicProfile, majorProfileShifted);
-      if (majorCorrelation > bestCorrelation) {
-        bestCorrelation = majorCorrelation;
-        bestKey = "${_notes[i]} Maior";
-      }
-      final minorProfileShifted = _rotateProfile(_krumhanslMinorProfile, i);
-      final minorCorrelation = _calculateCorrelation(musicProfile, minorProfileShifted);
-      if (minorCorrelation > bestCorrelation) {
-        bestCorrelation = minorCorrelation;
-        bestKey = "${_notes[(i + 9) % 12]} Menor";
-      }
-    }
-    Map<String, int> sortedNoteCounts = Map.fromEntries(_noteCounts.entries.toList()
-      ..sort((e1, e2) => e2.value.compareTo(e1.value)));
-    List<String> predominantNotes = sortedNoteCounts.keys.take(3).toList();
-    final newResult = KeyAnalysisResult(
-      keyName: bestKey,
-      confidence: (bestCorrelation < 0 ? 0 : bestCorrelation) * 100,
-      predominantNotes: predominantNotes,
-    );
-    if(mounted){
-      setState(() { _analysisResult = newResult; });
-    }
-    DatabaseHelper.instance.addAnalysis(newResult);
-  }
-
-  List<double> _rotateProfile(List<double> profile, int shifts) {
-    return List<double>.generate(profile.length, (i) => profile[(i - shifts + profile.length) % profile.length]);
-  }
-
-  double _calculateCorrelation(List<double> x, List<double> y) {
-    if (x.length != y.length || x.isEmpty) return 0.0;
-    int n = x.length;
-    double sumX = x.reduce((a, b) => a + b);
-    double sumY = y.reduce((a, b) => a + b);
-    bool xIsFlat = x.every((val) => val == x.first);
-    if (xIsFlat) return 0.0;
-    double sumX2 = x.map((e) => e * e).reduce((a, b) => a + b);
-    double sumY2 = y.map((e) => e * e).reduce((a, b) => a + b);
-    double sumXY = 0.0;
-    for (int i = 0; i < n; i++) { sumXY += x[i] * y[i]; }
-    double numerator = n * sumXY - sumX * sumY;
-    double denominator = math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-    if (denominator == 0) return 0.0;
-    return numerator / denominator;
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final keyParts = _analysisResult?.keyName.split(' ') ?? ['--', ''];
-    final keyName = keyParts.first;
-    final keyMode = keyParts.length > 1 ? keyParts.last : '';
-    final confidence = _analysisResult?.confidence ?? 0.0;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Analisador de Tom"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Configurações de Análise',
-            onPressed: _isListening ? null : _showSettingsPanel,
-          ),
-        ],
-      ),
-      body: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Conteúdo principal da tela
-          Column(
-            children: [
-              // MUDANÇA 1: Adicionando a legenda para as notas detectadas
-              Padding(
-                padding: const EdgeInsets.only(top: 10.0),
-                child: Text('NOTAS DETECTADAS', style: theme.textTheme.labelSmall?.copyWith(color: Colors.grey.shade600, letterSpacing: 1.5)),
-              ),
-              _buildDetectedNotesChips(),
-
-              const Spacer(),
-
-              // Display Central com o resultado
-              Column(
-                children: [
-                  Text(
-                    keyName,
-                    style: TextStyle(fontSize: 140, fontWeight: FontWeight.bold, color: theme.colorScheme.primary, height: 1.0),
-                  ),
-                  Text(
-                    keyMode,
-                    style: TextStyle(fontSize: 36, color: theme.textTheme.bodyMedium?.color, letterSpacing: 1.5),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: 150,
-                    child: LinearProgressIndicator(
-                      value: confidence / 100,
-                      backgroundColor: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "${confidence.toStringAsFixed(0)}% de Confiança",
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
-              ),
-
-              const Spacer(),
-
-              // Notas predominantes na parte de baixo
-              _buildPredominantNotes(),
-              const SizedBox(height: 160), // Espaço para o botão flutuante não cobrir
-            ],
-          ),
-
-          // MUDANÇA 2: Botão de ação centralizado
-          Positioned(
-            bottom: 40,
-            // Adicionamos left: 0 e right: 0 para que o Positioned ocupe toda a largura
-            // e o Center dentro dele possa funcionar corretamente.
-            left: 0,
-            right: 0,
-            child: Center(
-              child: GestureDetector(
-                onTap: _toggleListening,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: theme.scaffoldBackgroundColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: _isListening ? Colors.red.withOpacity(0.4) : theme.colorScheme.primary.withOpacity(0.4),
-                        blurRadius: 8, // Sombra mais suave
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      transitionBuilder: (child, animation) {
-                        return ScaleTransition(child: child, scale: animation);
-                      },
-                      child: Icon(
-                        _isListening ? Icons.stop_rounded : Icons.play_arrow_rounded,
-                        key: ValueKey<bool>(_isListening),
-                        size: 60,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused && _isListening) {
+      _stopListening();
+      if (mounted) setState(() {});
+    }
   }
 
-  void _showSettingsPanel() {
-    var tempSensitivity = _sensitivitySelection;
-    var tempInterval = _detectionInterval;
+  void _toggleListening() {
+    if (_isListening) {
+      _stopListening();
+    } else {
+      _startListening();
+    }
+    setState(() {});
+  }
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).cardColor,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Configurações de Análise', style: Theme.of(context).textTheme.headlineSmall),
-                  const Divider(height: 24),
+  void _startListening() {
+    _isListening = true;
+    _engine.reset();
+    _currentReading = null;
+    _stopwatch.reset();
+    _stopwatch.start();
 
-                  ListTile(
-                    leading: const Icon(Icons.mic_none_outlined),
-                    title: const Text('Sensibilidade do Microfone'),
-                    subtitle: Text(tempSensitivity.first.name[0].toUpperCase() + tempSensitivity.first.name.substring(1)),
-                    onTap: () async {
-                      final newSelection = await _showSensitivityDialog(tempSensitivity);
-                      if (newSelection != null) {
-                        setModalState(() => tempSensitivity = {newSelection});
-                      }
-                    },
-                  ),
+    _audioService.startKey(sensitivity: _sensitivity.index);
 
-                  ListTile(
-                    leading: const Icon(Icons.timer_outlined),
-                    title: const Text('Intervalo de Análise'),
-                    subtitle: Text("${tempInterval.round()} segundos"),
-                    onTap: () async {
-                      final newInterval = await _showIntervalDialog(tempInterval);
-                      if (newInterval != null) {
-                        setModalState(() => tempInterval = newInterval);
-                      }
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        child: const Text('Salvar'),
-                        onPressed: () {
-                          setState(() {
-                            _sensitivitySelection = tempSensitivity;
-                            _detectionInterval = tempInterval;
-                          });
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
-                  )
-                ],
-              ),
-            );
-          },
-        );
+    _chromaSubscription?.cancel();
+    _chromaSubscription = _audioService.chromaStream().listen(
+      (frame) {
+        _engine.addFrame(frame.chroma, _stopwatch.elapsed);
+      },
+      onError: (err) {
+        debugPrint("Erro no stream de áudio: $err");
       },
     );
+
+    _evalTimer?.cancel();
+    _evalTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (!_isListening) return;
+      final reading = _engine.evaluate(_stopwatch.elapsed);
+      if (mounted) {
+        setState(() {
+          _currentReading = reading;
+        });
+      }
+    });
   }
 
-  Future<Sensitivity?> _showSensitivityDialog(Set<Sensitivity> currentSelection) {
-    return showDialog<Sensitivity>(
+  void _stopListening() {
+    _isListening = false;
+    _evalTimer?.cancel();
+    _evalTimer = null;
+    _chromaSubscription?.cancel();
+    _chromaSubscription = null;
+    _stopwatch.stop();
+    _audioService.stop();
+  }
+
+  void _resetAnalysis() {
+    _engine.reset();
+    setState(() {
+      _currentReading = null;
+    });
+  }
+
+  Future<void> _changeSensitivity(Sensitivity newSens) async {
+    if (_sensitivity == newSens) return;
+    setState(() {
+      _sensitivity = newSens;
+    });
+    if (_isListening) {
+      _stopListening();
+      _startListening();
+      setState(() {});
+    }
+  }
+
+  void _showSensitivityDialog() {
+    showDialog(
       context: context,
       builder: (context) {
         return SimpleDialog(
-          title: const Text('Escolha a Sensibilidade'),
-          children: Sensitivity.values.map((sensitivity) {
+          title: const Text('Sensibilidade do Microfone'),
+          children: Sensitivity.values.map((s) {
+            final label = s.name[0].toUpperCase() + s.name.substring(1);
             return RadioListTile<Sensitivity>(
-              title: Text(sensitivity.name[0].toUpperCase() + sensitivity.name.substring(1)),
-              value: sensitivity,
-              groupValue: currentSelection.first,
-              onChanged: (value) {
-                Navigator.pop(context, value);
+              title: Text(label),
+              subtitle: Text(
+                s == Sensitivity.baixo
+                    ? 'Ignora ruídos do ambiente'
+                    : s == Sensitivity.medio
+                        ? 'Padrão recomendado'
+                        : 'Capta sons mais fracos',
+                style: const TextStyle(fontSize: 12),
+              ),
+              value: s,
+              groupValue: _sensitivity,
+              onChanged: (val) {
+                if (val != null) {
+                  _changeSensitivity(val);
+                  Navigator.pop(context);
+                }
               },
             );
           }).toList(),
@@ -389,92 +149,206 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen> {
     );
   }
 
-  Future<double?> _showIntervalDialog(double currentInterval) {
-    var tempInterval = currentInterval;
-    return showDialog<double>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Defina o Intervalo'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("${tempInterval.round()} segundos"),
-                  Slider(
-                    value: tempInterval,
-                    min: 5,
-                    max: 30,
-                    divisions: 5,
-                    label: "${tempInterval.round()}s",
-                    onChanged: (value) {
-                      setDialogState(() => tempInterval = value);
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-                ElevatedButton(onPressed: () => Navigator.pop(context, tempInterval), child: const Text('OK')),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final displayedKey = _engine.displayed;
 
-  Widget _buildDetectedNotesChips() {
-    return Container(
-      height: 40,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: _detectedNotesHistory.isEmpty
-          ? Center(child: Text("Pressione INICIAR para começar a análise", style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)))
-          : ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        reverse: true,
-        itemCount: _detectedNotesHistory.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Chip(
-              label: Text(_detectedNotesHistory[index], style: const TextStyle(fontWeight: FontWeight.bold)),
-              backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-              side: BorderSide(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
-            ),
-          );
-        },
-      ),
-    );
-  }
+    final String keyTonic;
+    final String keyMode;
+    if (_isListening && displayedKey == null) {
+      keyTonic = "Ouvindo...";
+      keyMode = "";
+    } else if (displayedKey != null) {
+      keyTonic = displayedKey.name;
+      keyMode = displayedKey.mode;
+    } else {
+      keyTonic = "--";
+      keyMode = "";
+    }
 
-  Widget _buildPredominantNotes() {
-    final predominantNotes = _analysisResult?.predominantNotes ?? [];
-    if (predominantNotes.isEmpty || !_isListening) return const SizedBox(height: 60);
+    final double confidence = _currentReading?.confidence ?? 0.0;
+    final String secondOption = _currentReading?.second.label ?? "--";
+    final List<double> profile =
+        _currentReading?.profile ?? List<double>.filled(12, 0.0);
 
-    return SizedBox(
-      height: 60,
-      child: Column(
-        children: [
-          Text("Notas Predominantes", style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: predominantNotes.map((note) {
-              return Card(
-                elevation: 0,
-                color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.7),
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Text(note, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSecondaryContainer)),
-                ),
-              );
-            }).toList(),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Análise de Tonalidade"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune_outlined),
+            tooltip: 'Sensibilidade',
+            onPressed: _showSensitivityDialog,
           ),
         ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            // Seção Superior: Tonalidade Detectada
+            Expanded(
+              flex: 4,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      keyTonic,
+                      style: TextStyle(
+                        fontSize: keyTonic.length > 3 ? 56 : 100,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                        height: 1.0,
+                      ),
+                    ),
+                    if (keyMode.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        keyMode,
+                        style: TextStyle(
+                          fontSize: 28,
+                          color: theme.textTheme.bodyMedium?.color,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    // 2ª Opção
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "2ª opção: ",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.textTheme.bodySmall?.color,
+                          ),
+                        ),
+                        Text(
+                          secondOption,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    // Barra de Confiança
+                    SizedBox(
+                      width: 180,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: confidence,
+                          backgroundColor:
+                              theme.colorScheme.outlineVariant.withOpacity(0.3),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.primary,
+                          ),
+                          minHeight: 8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "${(confidence * 100).toStringAsFixed(0)}% de confiança",
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Seção Central: 12 Barras do Perfil Cromático
+            Expanded(
+              flex: 3,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0, bottom: 4.0),
+                      child: Text(
+                        "PERFIL CROMÁTICO (ÚLTIMOS 10s)",
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          letterSpacing: 1.2,
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ChromaBars(
+                        profile: profile,
+                        displayedKey: displayedKey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Seção Inferior: Controles (Iniciar/Parar e Reiniciar)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Botão de Reiniciar Leitura (RF05)
+                  IconButton.filledTonal(
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: 'Reiniciar leitura',
+                    iconSize: 32,
+                    onPressed: _isListening ? _resetAnalysis : null,
+                  ),
+                  const SizedBox(width: 24),
+                  // Botão Principal Iniciar/Parar (RF01)
+                  GestureDetector(
+                    onTap: _toggleListening,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        color: _isListening
+                            ? Colors.red.shade700
+                            : theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: (_isListening
+                                    ? Colors.red
+                                    : theme.colorScheme.primary)
+                                .withOpacity(0.35),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          _isListening
+                              ? Icons.stop_rounded
+                              : Icons.mic_rounded,
+                          size: 46,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  // Espaço para balanceamento simétrico
+                  const SizedBox(width: 48),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
