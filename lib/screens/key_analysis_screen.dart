@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/key_profiles.dart';
 import '../core/tonal_engine.dart';
 import '../helpers/database_helper.dart';
 import '../services/audio_service.dart';
@@ -285,8 +284,8 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: confidence,
-                          backgroundColor:
-                              theme.colorScheme.outlineVariant.withOpacity(0.3),
+                          backgroundColor: theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.3),
                           valueColor: AlwaysStoppedAnimation<Color>(
                             theme.colorScheme.primary,
                           ),
@@ -405,7 +404,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                             color: (_isListening
                                     ? Colors.red
                                     : theme.colorScheme.primary)
-                                .withOpacity(0.35),
+                                .withValues(alpha: 0.35),
                             blurRadius: 12,
                             spreadRadius: 2,
                           ),

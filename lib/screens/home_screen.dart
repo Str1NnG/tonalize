@@ -34,9 +34,8 @@ class HomeScreen extends StatelessWidget {
 
   // Função para o feedback, para não repetir código
   void _playFeedback() async {
-    // MUDANÇA: Usando os comandos do pacote 'vibration'
-    bool? hasVibrator = await Vibration.hasVibrator();
-    if (hasVibrator ?? false) {
+    bool hasVibrator = await Vibration.hasVibrator();
+    if (hasVibrator) {
       Vibration.vibrate(duration: 50, amplitude: 128);
     }
     SystemSound.play(SystemSoundType.click);

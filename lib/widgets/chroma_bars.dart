@@ -26,7 +26,8 @@ class ChromaBars extends StatelessWidget {
     final theme = Theme.of(context);
     final scaleNotes = _computeScalePitchClasses();
     final primaryColor = theme.colorScheme.primary;
-    final inactiveColor = theme.colorScheme.outlineVariant.withOpacity(0.5);
+    final inactiveColor =
+        theme.colorScheme.outlineVariant.withValues(alpha: 0.5);
 
     return SizedBox(
       height: 160,

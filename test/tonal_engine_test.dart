@@ -96,47 +96,53 @@ void main() {
 
     test('Estabilidade: exige 3 leituras consecutivas para trocar a tonalidade exibida', () {
       final engine = TonalEngine(minSeconds: 2, stabilityCount: 3);
-      // Estabelece Dó maior
-      feedFrames(engine, kkMajor, 0, seconds: 3.0);
-      engine.evaluate(const Duration(milliseconds: 3000));
+      // Estabelece Dó maior (2s de Dó)
+      feedFrames(engine, kkMajor, 0, seconds: 2.0);
+      engine.evaluate(const Duration(milliseconds: 2000));
       expect(engine.displayed?.label, equals('C Maior'));
 
-      // 1ª leitura com Sol maior (tonic = 7)
-      feedFrames(engine, kkMajor, 7, seconds: 0.5, startAt: const Duration(milliseconds: 3100));
-      engine.evaluate(const Duration(milliseconds: 3600));
+      // Adiciona 4s de Sol maior (superando a energia de Dó na janela)
+      feedFrames(engine, kkMajor, 7, seconds: 4.0, startAt: const Duration(milliseconds: 2100));
+
+      // 1ª leitura com Sol maior vencendo
+      final eval1 = engine.evaluate(const Duration(milliseconds: 6100));
+      expect(eval1?.best.label, equals('G Maior'));
       expect(engine.displayed?.label, equals('C Maior')); // Ainda não troca!
 
-      // 2ª leitura com Sol maior
-      feedFrames(engine, kkMajor, 7, seconds: 0.5, startAt: const Duration(milliseconds: 3700));
-      engine.evaluate(const Duration(milliseconds: 4200));
+      // 2ª leitura com Sol maior vencendo
+      final eval2 = engine.evaluate(const Duration(milliseconds: 6600));
+      expect(eval2?.best.label, equals('G Maior'));
       expect(engine.displayed?.label, equals('C Maior')); // Ainda não troca!
 
-      // 3ª leitura consecutiva com Sol maior
-      feedFrames(engine, kkMajor, 7, seconds: 0.5, startAt: const Duration(milliseconds: 4300));
-      engine.evaluate(const Duration(milliseconds: 4800));
+      // 3ª leitura consecutiva com Sol maior vencendo
+      final eval3 = engine.evaluate(const Duration(milliseconds: 7100));
+      expect(eval3?.best.label, equals('G Maior'));
       expect(engine.displayed?.label, equals('G Maior')); // Troca!
     });
 
     test('Estabilidade: contagem zera se voltar à tonalidade exibida', () {
       final engine = TonalEngine(minSeconds: 2, stabilityCount: 3);
-      feedFrames(engine, kkMajor, 0, seconds: 3.0);
-      engine.evaluate(const Duration(milliseconds: 3000));
+      feedFrames(engine, kkMajor, 0, seconds: 2.0);
+      engine.evaluate(const Duration(milliseconds: 2000));
       expect(engine.displayed?.label, equals('C Maior'));
 
-      // 1ª leitura com Sol
-      feedFrames(engine, kkMajor, 7, seconds: 0.5, startAt: const Duration(milliseconds: 3100));
-      engine.evaluate(const Duration(milliseconds: 3600));
-      expect(engine.displayed?.label, equals('C Maior'));
+      // Adiciona Sol suficiente para vencer Dó
+      feedFrames(engine, kkMajor, 7, seconds: 3.0, startAt: const Duration(milliseconds: 2100));
+      final eval1 = engine.evaluate(const Duration(milliseconds: 5100));
+      expect(eval1?.best.label, equals('G Maior'));
+      expect(engine.displayed?.label, equals('C Maior')); // 1ª leitura
 
-      // Volta para Dó
-      feedFrames(engine, kkMajor, 0, seconds: 0.5, startAt: const Duration(milliseconds: 3700));
-      engine.evaluate(const Duration(milliseconds: 4200));
-      expect(engine.displayed?.label, equals('C Maior'));
+      // Volta a adicionar Dó massivo para que Dó volte a vencer
+      feedFrames(engine, kkMajor, 0, seconds: 5.0, startAt: const Duration(milliseconds: 5200));
+      final eval2 = engine.evaluate(const Duration(milliseconds: 10200));
+      expect(eval2?.best.label, equals('C Maior'));
+      expect(engine.displayed?.label, equals('C Maior')); // Zera contagem de Sol
 
-      // Próxima leitura com Sol volta para count = 1, precisando de mais 2
-      feedFrames(engine, kkMajor, 7, seconds: 0.5, startAt: const Duration(milliseconds: 4300));
-      engine.evaluate(const Duration(milliseconds: 4800));
-      expect(engine.displayed?.label, equals('C Maior'));
+      // Próxima leitura com Sol volta para candidateCount = 1
+      feedFrames(engine, kkMajor, 7, seconds: 8.0, startAt: const Duration(milliseconds: 10300));
+      final eval3 = engine.evaluate(const Duration(milliseconds: 18300));
+      expect(eval3?.best.label, equals('G Maior'));
+      expect(engine.displayed?.label, equals('C Maior')); // Apenas 1 leitura, não troca ainda!
     });
 
     test('Janela: frames descartados após windowSeconds retornam null mas mantêm displayed', () {

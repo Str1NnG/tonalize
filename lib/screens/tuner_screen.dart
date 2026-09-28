@@ -115,8 +115,8 @@ class _TunerScreenState extends State<TunerScreen>
 
       final isNowTuned = newPitchData.cents.abs() < 5;
       if (isNowTuned && !_wasTunedPreviously) {
-        bool? hasVibrator = await Vibration.hasVibrator();
-        if (hasVibrator ?? false) {
+        bool hasVibrator = await Vibration.hasVibrator();
+        if (hasVibrator) {
           Vibration.vibrate(duration: 50, amplitude: 128);
         }
       }
@@ -286,7 +286,7 @@ class TunerArcPainter extends CustomPainter {
     const sweepAngle = math.pi;
 
     final borderPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.3)
+      ..color = Colors.grey.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.butt;
@@ -300,7 +300,7 @@ class TunerArcPainter extends CustomPainter {
 
     if (arcColor != Colors.transparent) {
       final fillPaint = Paint()
-        ..color = arcColor.withOpacity(0.8)
+        ..color = arcColor.withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8
         ..strokeCap = StrokeCap.butt;

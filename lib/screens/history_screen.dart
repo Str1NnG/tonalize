@@ -165,15 +165,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           side: BorderSide(
-                            color: theme.colorScheme.outline.withOpacity(0.3),
+                            color: theme.colorScheme.outline
+                                .withValues(alpha: 0.3),
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: ListTile(
                           leading: CircleAvatar(
                             backgroundColor: isCorrect
-                                ? Colors.green.withOpacity(0.2)
-                                : Colors.red.withOpacity(0.2),
+                                ? Colors.green.withValues(alpha: 0.2)
+                                : Colors.red.withValues(alpha: 0.2),
                             child: Icon(
                               isCorrect
                                   ? Icons.check_rounded
@@ -198,8 +199,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: isCorrect
-                                      ? Colors.green.withOpacity(0.15)
-                                      : Colors.red.withOpacity(0.15),
+                                      ? Colors.green.withValues(alpha: 0.15)
+                                      : Colors.red.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
