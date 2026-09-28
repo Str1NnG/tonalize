@@ -10,19 +10,19 @@ void main() {
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
-      child: const KeyFinderApp(),
+      child: const TonalizeApp(),
     ),
   );
 }
 
-class KeyFinderApp extends StatelessWidget {
-  const KeyFinderApp({super.key});
+class TonalizeApp extends StatelessWidget {
+  const TonalizeApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
-      title: 'KeyFinder',
+      title: 'Tonalize',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
