@@ -59,7 +59,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _refreshHistory();
   }
 
-  Future<void> _exportCsv() async {
+  Future<void> _exportFieldCsv() async {
     if (_historyList.isEmpty) return;
 
     final buffer = StringBuffer();
@@ -75,7 +75,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('CSV copiado para a área de transferência!'),
+          content: Text('CSV de campo copiado para a área de transferência!'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportReadingsCsv() async {
+    final csv = await DatabaseHelper.instance.exportReadingsCsv();
+    if (csv.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhuma leitura registrada para exportar.'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    await Clipboard.setData(ClipboardData(text: csv));
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('CSV de leituras da sessão copiado com sucesso!'),
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -120,11 +148,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          // Botão Exportar CSV para a monografia
+          // Botão Exportar Leituras de Pesquisa (Fase 4.2)
+          IconButton(
+            icon: const Icon(Icons.table_chart_outlined),
+            tooltip: 'Exportar leituras (pesquisa)',
+            onPressed: _exportReadingsCsv,
+          ),
+          // Botão Exportar CSV de Campo (RF06)
           IconButton(
             icon: const Icon(Icons.file_download_outlined),
-            tooltip: 'Exportar CSV',
-            onPressed: _historyList.isEmpty ? null : _exportCsv,
+            tooltip: 'Exportar CSV de campo',
+            onPressed: _historyList.isEmpty ? null : _exportFieldCsv,
           ),
           // Botão Limpar Tudo
           IconButton(
