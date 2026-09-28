@@ -8,6 +8,12 @@ import be.tarsos.dsp.io.android.AudioDispatcherFactory
 import be.tarsos.dsp.pitch.PitchProcessor
 import io.flutter.plugin.common.EventChannel
 
+data class KeyConfig(
+    val harmonics: Int = 4,
+    val peakThreshold: Float = 0.01f,
+    val minTonalness: Float = 1.5f
+)
+
 class AudioEngine {
     enum class Mode { KEY, TUNER }
 
@@ -18,13 +24,18 @@ class AudioEngine {
     private var dispatcher: AudioDispatcher? = null
 
     /** sensitivity: 0 = baixa, 1 = média, 2 = alta (mais sensível = limiar mais baixo). */
-    fun start(mode: Mode, sensitivity: Int) {
+    fun start(mode: Mode, sensitivity: Int, config: KeyConfig = KeyConfig()) {
         stop()
         val d = when (mode) {
             Mode.KEY -> AudioDispatcherFactory.fromDefaultMicrophone(44100, 8192, 4096).apply {
                 // breakProcessingQueueOnSilence = true: blocos abaixo do limiar não chegam ao ChromaProcessor
                 addAudioProcessor(SilenceDetector(thresholdFor(sensitivity), true))
-                addAudioProcessor(ChromaProcessor { chroma, spl ->
+                val mapper = ChromaMapper(
+                    harmonics = config.harmonics,
+                    peakThreshold = config.peakThreshold,
+                    minTonalness = config.minTonalness
+                )
+                addAudioProcessor(ChromaProcessor(mapper) { chroma, spl ->
                     val payload = mapOf(
                         "chroma" to chroma.map { it.toDouble() },
                         "spl" to spl,

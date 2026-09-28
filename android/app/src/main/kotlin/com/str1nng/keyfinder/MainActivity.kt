@@ -1,6 +1,7 @@
 package com.str1nng.keyfinder
 
 import com.str1nng.keyfinder.audio.AudioEngine
+import com.str1nng.keyfinder.audio.KeyConfig
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -18,8 +19,12 @@ class MainActivity : FlutterActivity() {
                 "start" -> {
                     val mode = if (call.argument<String>("mode") == "tuner") AudioEngine.Mode.TUNER else AudioEngine.Mode.KEY
                     val sensitivity = call.argument<Int>("sensitivity") ?: 1
+                    val harmonics = call.argument<Int>("harmonics") ?: 4
+                    val peakThreshold = (call.argument<Double>("peakThreshold") ?: 0.01).toFloat()
+                    val minTonalness = (call.argument<Double>("minTonalness") ?: 1.5).toFloat()
+                    val config = KeyConfig(harmonics, peakThreshold, minTonalness)
                     try {
-                        engine.start(mode, sensitivity)
+                        engine.start(mode, sensitivity, config)
                         result.success(null)
                     } catch (e: Exception) {
                         result.error("AUDIO_ERROR", e.message, null)

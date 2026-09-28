@@ -2,46 +2,74 @@ package com.str1nng.keyfinder.audio
 
 import be.tarsos.dsp.util.fft.FFT
 import be.tarsos.dsp.util.fft.HannWindow
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.ln
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
- * Converte um bloco de áudio (FFT_SIZE amostras, mono, 44.100 Hz) em um perfil de 12 notas
- * (chroma): a energia de cada raia da FFT entre F_MIN e F_MAX é somada na nota mais próxima,
- * ignorando a oitava. O resultado é normalizado para somar 1 (cada bloco pesa o mesmo,
- * o que aproxima a ponderação por duração usada nos perfis de Krumhansl-Kessler).
- * Sem dependência de Android: testável na JVM.
+ * Bloco de áudio -> perfil de 12 notas. Mudanças em relação ao plano 1:
+ *  - só picos locais do espectro entram (reduz ruído de fundo e bateria);
+ *  - cada pico em f credita também as notas de f/2, f/3, f/4 com pesos 0,6^h (HPCP, Gómez 2006):
+ *    um pico em A pode ser o 3º harmônico de um D, e parte da energia volta para o D;
+ *  - blocos sem tonalidade (perfil quase plano) são descartados.
+ * Com harmonics = 1, peakThreshold = 0 e minTonalness = 0 o comportamento é o do plano 1 (modo legado).
  */
 class ChromaMapper(
     val sampleRate: Float = 44100f,
     val fftSize: Int = 8192,
     val fMin: Float = 130f,
     val fMax: Float = 2000f,
+    val harmonics: Int = 4,          // 1 = sem crédito de subarmônicos
+    val harmonicDecay: Float = 0.6f, // peso do h-ésimo subarmônico = harmonicDecay^h
+    val peakThreshold: Float = 0.01f,// pico só conta se amplitude >= 1% da máxima do bloco (-40 dB); 0 = usa todas as raias
+    val minTonalness: Float = 1.5f,  // max/média do perfil; abaixo disso o bloco é descartado; 0 = nunca descarta
 ) {
     private val fft = FFT(fftSize, HannWindow())
     private val amplitudes = FloatArray(fftSize / 2)
-    private val binToPitchClass = IntArray(fftSize / 2) { k ->
+    private val kMin = ceil(fMin * fftSize / sampleRate).toInt().coerceAtLeast(1)
+    private val kMax = floor(fMax * fftSize / sampleRate).toInt().coerceAtMost(fftSize / 2 - 2)
+    private val weights = FloatArray(harmonics) { h -> harmonicDecay.pow(h) }
+    private val targets: Array<IntArray> = Array(fftSize / 2) { k ->
         val hz = k * sampleRate / fftSize
-        if (hz < fMin || hz > fMax) -1
-        else {
-            val midi = 69.0 + 12.0 * (ln(hz / 440.0) / ln(2.0))
-            ((midi.roundToInt() % 12) + 12) % 12
-        }
+        IntArray(harmonics) { h -> pitchClassOf(hz / (h + 1)) }
     }
 
-    /** Retorna o perfil de 12 notas normalizado (soma 1) ou null se o bloco não tiver energia. */
+    private fun pitchClassOf(hz: Float): Int {
+        if (hz <= 0f) return -1
+        val midi = 69.0 + 12.0 * (ln(hz / 440.0) / ln(2.0))
+        return ((midi.roundToInt() % 12) + 12) % 12
+    }
+
+    /** Perfil de 12 notas normalizado (soma 1) ou null se o bloco não tiver energia ou tonalidade. */
     fun chroma(buffer: FloatArray): FloatArray? {
         require(buffer.size == fftSize) { "buffer deve ter $fftSize amostras" }
-        val data = buffer.copyOf()          // forwardTransform é in-place e aplica a janela de Hann
+        val data = buffer.copyOf()
         fft.forwardTransform(data)
-        fft.modulus(data, amplitudes)        // amplitudes[k] = magnitude da raia k
+        fft.modulus(data, amplitudes)
+
+        var maxAmp = 0f
+        for (k in kMin..kMax) if (amplitudes[k] > maxAmp) maxAmp = amplitudes[k]
+        if (maxAmp <= 0f) return null
+        val threshold = maxAmp * peakThreshold
+
         val out = FloatArray(12)
-        for (k in amplitudes.indices) {
-            val pc = binToPitchClass[k]
-            if (pc >= 0) out[pc] += amplitudes[k] * amplitudes[k]   // energia
+        for (k in kMin..kMax) {
+            val a = amplitudes[k]
+            if (a < threshold) continue
+            if (peakThreshold > 0f && (a <= amplitudes[k - 1] || a < amplitudes[k + 1])) continue // só máximos locais
+            val energy = a * a
+            val t = targets[k]
+            for (h in 0 until harmonics) { val pc = t[h]; if (pc >= 0) out[pc] += weights[h] * energy }
         }
         val sum = out.sum()
         if (sum <= 0f) return null
+        if (minTonalness > 0f) {
+            var maxPc = 0f
+            for (v in out) if (v > maxPc) maxPc = v
+            if (maxPc / (sum / 12f) < minTonalness) return null
+        }
         for (i in 0 until 12) out[i] /= sum
         return out
     }
