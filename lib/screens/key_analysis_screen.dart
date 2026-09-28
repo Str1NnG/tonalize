@@ -163,6 +163,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
           title: const Text('Sensibilidade do Microfone'),
           children: Sensitivity.values.map((s) {
             final label = s.name[0].toUpperCase() + s.name.substring(1);
+            // ignore: deprecated_member_use
             return RadioListTile<Sensitivity>(
               title: Text(label),
               subtitle: Text(
@@ -174,7 +175,9 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                 style: const TextStyle(fontSize: 12),
               ),
               value: s,
+              // ignore: deprecated_member_use
               groupValue: _sensitivity,
+              // ignore: deprecated_member_use
               onChanged: (val) {
                 if (val != null) {
                   _changeSensitivity(val);
