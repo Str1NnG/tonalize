@@ -33,20 +33,42 @@ void main() {
   const dMinor = KeyCandidate(2, false, 0.0); // D Menor (paralela, vizinho)
   const ebMajor = KeyCandidate(3, true, 0.0); // D# / Eb Maior (distante)
   const eMajor = KeyCandidate(4, true, 0.0); // E Maior (distante)
-  const fsMinor = KeyCandidate(6, false, 0.0); // F# Menor (distante)
+  const fsMinor = KeyCandidate(6, false, 0.0); // F# Menor (iii de D)
+  const eMinor = KeyCandidate(4, false, 0.0); // E Menor (ii de D)
   const aMinor = KeyCandidate(9, false, 0.0); // A Menor (distante)
+  const fMajor = KeyCandidate(5, true, 0.0); // F Maior (distante)
+  const csMinor = KeyCandidate(1, false, 0.0); // C# Menor (distante)
+  const bMajor = KeyCandidate(11, true, 0.0); // B Maior (paralela de Bm)
+  const cMajor = KeyCandidate(0, true, 0.0); // C Maior (distante)
 
   group('KeyStabilizer isNeighbor', () {
-    test('identifica vizinhos e não-vizinhos corretamente', () {
-      expect(KeyStabilizer.isNeighbor(dMajor, aMajor), isTrue); // D -> A (quinta acima)
-      expect(KeyStabilizer.isNeighbor(dMajor, gMajor), isTrue); // D -> G (quinta abaixo)
-      expect(KeyStabilizer.isNeighbor(dMajor, bMinor), isTrue); // D -> Bm (relativa menor)
-      expect(KeyStabilizer.isNeighbor(bMinor, dMajor), isTrue); // Bm -> D (relativa maior)
-      expect(KeyStabilizer.isNeighbor(dMajor, dMinor), isTrue); // D -> Dm (paralela)
+    test('identifica vizinhos e não-vizinhos a partir de Ré maior e Si menor', () {
+      // Verdadeiros a partir de Ré maior: A, G, Bm, F#m, Em, Dm
+      expect(KeyStabilizer.isNeighbor(dMajor, aMajor), isTrue); // V
+      expect(KeyStabilizer.isNeighbor(dMajor, gMajor), isTrue); // IV
+      expect(KeyStabilizer.isNeighbor(dMajor, bMinor), isTrue); // vi
+      expect(KeyStabilizer.isNeighbor(dMajor, fsMinor), isTrue); // iii
+      expect(KeyStabilizer.isNeighbor(dMajor, eMinor), isTrue); // ii
+      expect(KeyStabilizer.isNeighbor(dMajor, dMinor), isTrue); // paralelo
 
-      expect(KeyStabilizer.isNeighbor(dMajor, eMajor), isFalse); // D -> E
-      expect(KeyStabilizer.isNeighbor(dMajor, fsMinor), isFalse); // D -> F#m
-      expect(KeyStabilizer.isNeighbor(dMajor, aMinor), isFalse); // D -> Am
+      // Falsos a partir de Ré maior: E, Am, F, C#m, E♭
+      expect(KeyStabilizer.isNeighbor(dMajor, eMajor), isFalse);
+      expect(KeyStabilizer.isNeighbor(dMajor, aMinor), isFalse);
+      expect(KeyStabilizer.isNeighbor(dMajor, fMajor), isFalse);
+      expect(KeyStabilizer.isNeighbor(dMajor, csMinor), isFalse);
+      expect(KeyStabilizer.isNeighbor(dMajor, ebMajor), isFalse);
+
+      // Verdadeiros a partir de Si menor: D, F#m, Em, G, A, B (maior)
+      expect(KeyStabilizer.isNeighbor(bMinor, dMajor), isTrue); // III
+      expect(KeyStabilizer.isNeighbor(bMinor, fsMinor), isTrue); // v
+      expect(KeyStabilizer.isNeighbor(bMinor, eMinor), isTrue); // iv
+      expect(KeyStabilizer.isNeighbor(bMinor, gMajor), isTrue); // VI
+      expect(KeyStabilizer.isNeighbor(bMinor, aMajor), isTrue); // VII
+      expect(KeyStabilizer.isNeighbor(bMinor, bMajor), isTrue); // paralelo
+
+      // Falsos a partir de Si menor: C, Am
+      expect(KeyStabilizer.isNeighbor(bMinor, cMajor), isFalse);
+      expect(KeyStabilizer.isNeighbor(bMinor, aMinor), isFalse);
     });
   });
 

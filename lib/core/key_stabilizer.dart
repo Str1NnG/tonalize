@@ -71,11 +71,14 @@ class KeyStabilizer {
     switches = 0;
   }
 
-  /// Quinta acima/abaixo no mesmo modo, relativa ou paralela.
+  /// Tons vizinhos (no máximo um acidente de diferença) e o paralelo.
+  /// Maior: V, IV, vi, iii, ii e o menor paralelo. Menor: III, v, iv, VI, VII e o maior paralelo.
   static bool isNeighbor(KeyCandidate a, KeyCandidate b) {
     final d = (b.tonic - a.tonic + 12) % 12;
     if (a.major == b.major) return d == 7 || d == 5;
     if (d == 0) return true;
-    return a.major ? d == 9 : d == 3;
+    return a.major
+        ? (d == 9 || d == 4 || d == 2)
+        : (d == 3 || d == 8 || d == 10);
   }
 }
