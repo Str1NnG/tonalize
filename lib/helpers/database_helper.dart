@@ -85,6 +85,7 @@ class DatabaseHelper {
         displayed TEXT NOT NULL,
         passage TEXT,
         songSeconds REAL,
+        evidenceSeconds REAL,
         event TEXT,
         best TEXT NOT NULL,
         rBest REAL NOT NULL,
@@ -127,6 +128,7 @@ class DatabaseHelper {
     if (oldVersion < 4) {
       await db.execute('ALTER TABLE readings ADD COLUMN passage TEXT;');
       await db.execute('ALTER TABLE readings ADD COLUMN songSeconds REAL;');
+      await db.execute('ALTER TABLE readings ADD COLUMN evidenceSeconds REAL;');
       await db.execute('ALTER TABLE readings ADD COLUMN event TEXT;');
       await db.execute('ALTER TABLE field_log ADD COLUMN passage TEXT;');
     }
@@ -168,6 +170,7 @@ class DatabaseHelper {
     required String displayed,
     String? passage,
     double? songSeconds,
+    double? evidenceSeconds,
     String? event,
     required String best,
     required double rBest,
@@ -182,6 +185,7 @@ class DatabaseHelper {
       'displayed': displayed,
       'passage': passage ?? '',
       'songSeconds': songSeconds ?? 0.0,
+      'evidenceSeconds': evidenceSeconds ?? 0.0,
       'event': event ?? '',
       'best': best,
       'rBest': rBest,
@@ -213,10 +217,10 @@ class DatabaseHelper {
     );
 
     final buffer = StringBuffer();
-    buffer.writeln('sessionId,ts,displayed,passage,songSeconds,event,best,rBest,rDisplayed,challenge,config');
+    buffer.writeln('sessionId,ts,displayed,passage,songSeconds,evidenceSeconds,event,best,rBest,rDisplayed,challenge,config');
     for (final r in rows) {
       buffer.writeln(
-        '${r['sessionId']},${r['ts']},${r['displayed']},${r['passage'] ?? ''},${r['songSeconds'] ?? 0.0},${r['event'] ?? ''},${r['best']},${r['rBest']},${r['rDisplayed']},${r['challenge']},${r['config']}',
+        '${r['sessionId']},${r['ts']},${r['displayed']},${r['passage'] ?? ''},${r['songSeconds'] ?? 0.0},${r['evidenceSeconds'] ?? 0.0},${r['event'] ?? ''},${r['best']},${r['rBest']},${r['rDisplayed']},${r['challenge']},${r['config']}',
       );
     }
     return buffer.toString();

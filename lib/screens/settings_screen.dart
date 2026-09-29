@@ -24,7 +24,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _songHalflifeS = 60;
   int _songFarS = 12;
   int _songNearS = 45;
-  bool _vetoNotes = false;
+  double _evidenceTol = 0.8;
+  double _evidenceDrain = 0.5;
+  bool _strictNotes = false;
 
   @override
   void initState() {
@@ -45,7 +47,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _songHalflifeS = prefs.getInt('song_halflife_s') ?? 60;
       _songFarS = prefs.getInt('song_far_s') ?? 12;
       _songNearS = prefs.getInt('song_near_s') ?? 45;
-      _vetoNotes = prefs.getBool('veto_notes') ?? false;
+      _evidenceTol = prefs.getDouble('evidence_tol') ?? 0.8;
+      _evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
+      _strictNotes = prefs.getBool('strict_notes') ?? false;
     });
   }
 
@@ -109,10 +113,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _songNearS = value);
   }
 
-  Future<void> _setVetoNotes(bool value) async {
+  Future<void> _setEvidenceTol(double value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('veto_notes', value);
-    setState(() => _vetoNotes = value);
+    await prefs.setDouble('evidence_tol', value);
+    setState(() => _evidenceTol = value);
+  }
+
+  Future<void> _setEvidenceDrain(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('evidence_drain', value);
+    setState(() => _evidenceDrain = value);
+  }
+
+  Future<void> _setStrictNotes(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('strict_notes', value);
+    setState(() => _strictNotes = value);
   }
 
   String get _normalizedProfileValue {
@@ -333,17 +349,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                 ),
+
+                // Tolerância da evidência de nota nova (evidence_tol)
+                ListTile(
+                  leading: const Icon(Icons.tune_outlined),
+                  title: const Text('Tolerância da Nota Nova'),
+                  subtitle: Text(
+                    _evidenceTol == 0.8
+                        ? '0,8 (padrão)'
+                        : _evidenceTol.toStringAsFixed(1),
+                  ),
+                  trailing: DropdownButton<double>(
+                    value: _evidenceTol,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 0.6, child: Text('0,6 (sensível)')),
+                      DropdownMenuItem(value: 0.8, child: Text('0,8 (padrão)')),
+                      DropdownMenuItem(value: 1.0, child: Text('1,0 (conservador)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) _setEvidenceTol(val);
+                    },
+                  ),
+                ),
+
+                // Dreno da evidência (evidence_drain)
+                ListTile(
+                  leading: const Icon(Icons.water_drop_outlined),
+                  title: const Text('Dreno da Evidência'),
+                  subtitle: Text(
+                    _evidenceDrain == 0.5
+                        ? '0,5 s/s (padrão)'
+                        : '$_evidenceDrain s/s',
+                  ),
+                  trailing: DropdownButton<double>(
+                    value: _evidenceDrain,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 0.0, child: Text('0 (sem dreno)')),
+                      DropdownMenuItem(value: 0.5, child: Text('0,5 s/s (padrão)')),
+                      DropdownMenuItem(value: 1.5, child: Text('1,5 s/s (agressivo)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) _setEvidenceDrain(val);
+                    },
+                  ),
+                ),
               ],
 
-              // Veto por notas da escala (veto_notes) - Fase 5
+              // Modo estrito (strict_notes) - Fase 5
               SwitchListTile(
-                title: const Text('Veto por Nota da Escala'),
+                title: const Text('Modo Estrito (strict_notes)'),
                 subtitle: const Text(
-                  'Compara presença das notas exclusivas antes de aceitar troca',
+                  'Sem nota nova da escala, o tom da música nunca troca para um vizinho',
                 ),
-                value: _vetoNotes,
-                onChanged: _setVetoNotes,
-                secondary: const Icon(Icons.rule_outlined),
+                value: _strictNotes,
+                onChanged: _setStrictNotes,
+                secondary: const Icon(Icons.lock_clock_outlined),
               ),
 
               const Divider(),

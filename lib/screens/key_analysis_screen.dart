@@ -91,7 +91,9 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     final songHalfLife = prefs.getInt('song_halflife_s') ?? 60;
     final songFar = prefs.getInt('song_far_s') ?? 12;
     final songNear = prefs.getInt('song_near_s') ?? 45;
-    final vetoNotes = prefs.getBool('veto_notes') ?? false;
+    final evidenceTol = prefs.getDouble('evidence_tol') ?? 0.8;
+    final evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
+    final strictNotes = prefs.getBool('strict_notes') ?? false;
 
     // Parse profile
     ProfileSet profiles = ProfileSet.temperley;
@@ -108,10 +110,10 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
 
     _sessionId = DateTime.now().toIso8601String();
     final songConfigStr = songMemoryEnabled
-        ? 'song$songHalfLife;far$songFar;near$songNear'
+        ? 'song$songHalfLife;far$songFar;near$songNear;tol$evidenceTol;drain$evidenceDrain'
         : 'nosong';
     _configString =
-        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code};$songConfigStr${vetoNotes ? ";veto" : ""}';
+        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code};$songConfigStr${strictNotes ? ";strict" : ""}';
 
     final ChromaAccumulator accumulator;
     final KeyStabilizer stabilizer;
@@ -141,7 +143,8 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         baseHoldSeconds: 4.0,
         neighborMargin: 0.08,
         neighborHoldSeconds: 6.0,
-        vetoByScaleNotes: vetoNotes,
+        requireNewNotes: strictNotes,
+        evidenceTolerance: evidenceTol,
       );
     }
 
@@ -150,6 +153,8 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       halfLifeSeconds: songHalfLife.toDouble(),
       farResetSeconds: songFar.toDouble(),
       nearResetSeconds: songNear.toDouble(),
+      evidenceTolerance: evidenceTol,
+      evidenceDrain: evidenceDrain,
     );
 
     _engine = TonalEngine(
@@ -187,10 +192,10 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
           _stopwatch.reset();
           _stopwatch.start();
           _showSnackBar('Nova música? Leitura reiniciada');
-        } else if (reading.event == MemoryEvent.farReset) {
+        } else if (reading.event == MemoryEvent.farKeyConfirmed) {
           _showSnackBar('Tom mudou — memória da música reiniciada');
-        } else if (reading.event == MemoryEvent.nearReset) {
-          _showSnackBar('Tom vizinho sustentado — memória reiniciada');
+        } else if (reading.event == MemoryEvent.neighborKeyConfirmed) {
+          _showSnackBar('Novo tom confirmado — memória reiniciada');
         }
       }
 
@@ -213,6 +218,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
           displayed: reading.displayed?.label ?? '',
           passage: reading.passage?.label ?? '',
           songSeconds: reading.songSeconds,
+          evidenceSeconds: reading.evidenceSeconds,
           event: reading.event == MemoryEvent.none ? '' : reading.event.name,
           best: reading.best.label,
           rBest: reading.best.r,
@@ -601,12 +607,12 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
               padding: const EdgeInsets.only(bottom: 12.0, top: 4.0),
               child: Column(
                 children: [
-                  // Métrica de estabilidade (trocas: N · mm:ss · memória: mm:ss)
+                  // Métrica de estabilidade (trocas: N · mm:ss · memória: mm:ss [· evidência: N s])
                   if (_isListening)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10.0),
                       child: Text(
-                        "trocas: ${_engine.switches}  ·  ${_formatDuration(_stopwatch.elapsed)}  ·  memória: ${_formatDuration(Duration(seconds: (_currentReading?.songSeconds ?? 0.0).round()))}",
+                        "trocas: ${_engine.switches}  ·  ${_formatDuration(_stopwatch.elapsed)}  ·  memória: ${_formatDuration(Duration(seconds: (_currentReading?.songSeconds ?? 0.0).round()))}${_logReadings ? '  ·  evidência: ${(_currentReading?.evidenceSeconds ?? 0.0).toStringAsFixed(0)} s' : ''}",
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 12,
                           color: theme.textTheme.bodySmall?.color

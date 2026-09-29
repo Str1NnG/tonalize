@@ -1,15 +1,23 @@
 import 'dart:math' as math;
 import 'chroma_accumulator.dart';
+import 'key_evidence.dart';
 import 'key_profiles.dart';
 import 'key_scorer.dart';
 import 'key_stabilizer.dart';
 
 export 'chroma_accumulator.dart';
+export 'key_evidence.dart';
 export 'key_profiles.dart';
 export 'key_scorer.dart';
 export 'key_stabilizer.dart';
 
-enum MemoryEvent { none, silenceReset, farReset, nearReset, manualReset }
+enum MemoryEvent {
+  none,
+  silenceReset,
+  farKeyConfirmed,
+  neighborKeyConfirmed,
+  manualReset,
+}
 
 class SongMemoryConfig {
   const SongMemoryConfig({
@@ -17,9 +25,12 @@ class SongMemoryConfig {
     this.windowSeconds = 240, // teto da memória da música
     this.halfLifeSeconds = 60, // o que soou há 1 min pesa metade
     this.silenceResetSeconds = 6, // pausa entre músicas
-    this.followPassageSeconds = 30, // memória jovem (início ou pós-reinício) segue o trecho
+    this.youngSeconds = 30, // memória jovem: segue o trecho até ter 30 s E concordar com ele
     this.farResetSeconds = 12, // trecho num tom distante por 12 s -> a música mudou: reinicia a partir do trecho
-    this.nearResetSeconds = 45, // trecho num tom vizinho por 45 s -> idem (0 = nunca)
+    this.nearResetSeconds = 45, // trecho num tom vizinho COM notas novas por 45 s (acumulados) -> idem (0 = nunca)
+    this.evidenceTolerance = 0.8, // ver newNoteEvidence
+    this.evidenceFloor = 0.25,
+    this.evidenceDrain = 0.5, // por segundo SEM nota nova (trecho ainda no vizinho), o contador perde 0,5 s; 0 = sem dreno
     this.baseHoldSeconds = 20, // regra própria da memória da música: lenta de propósito
     this.neighborHoldSeconds = 30,
     this.showPassageAfterSeconds = 4, // linha "agora" aparece após 4 s de discordância
@@ -29,9 +40,12 @@ class SongMemoryConfig {
   final double windowSeconds;
   final double halfLifeSeconds;
   final double silenceResetSeconds;
-  final double followPassageSeconds;
+  final double youngSeconds;
   final double farResetSeconds;
   final double nearResetSeconds;
+  final double evidenceTolerance;
+  final double evidenceFloor;
+  final double evidenceDrain;
   final double baseHoldSeconds;
   final double neighborHoldSeconds;
   final double showPassageAfterSeconds;
@@ -51,6 +65,7 @@ class TonalReading {
   final bool showPassage; // trecho discorda da música há >= showPassageAfterSeconds
   final MemoryEvent event; // o que aconteceu nesta avaliação
   final double songSeconds; // segundos de áudio na memória da música
+  final double evidenceSeconds; // segundos acumulados de evidência de tom novo
 
   const TonalReading({
     this.displayed,
@@ -66,6 +81,7 @@ class TonalReading {
     this.showPassage = false,
     this.event = MemoryEvent.none,
     this.songSeconds = 0.0,
+    this.evidenceSeconds = 0.0,
   });
 }
 
@@ -91,8 +107,9 @@ class TonalEngine {
       neighborMargin: this.passageStabilizer.neighborMargin,
       baseHoldSeconds: songConfig.baseHoldSeconds,
       neighborHoldSeconds: songConfig.neighborHoldSeconds,
-      vetoByScaleNotes: this.passageStabilizer.vetoByScaleNotes,
-      vetoTolerance: this.passageStabilizer.vetoTolerance,
+      requireNewNotes: this.passageStabilizer.requireNewNotes,
+      evidenceTolerance: songConfig.evidenceTolerance,
+      evidenceFloor: songConfig.evidenceFloor,
     );
   }
 
@@ -104,10 +121,13 @@ class TonalEngine {
   late final ChromaAccumulator song;
   late final KeyStabilizer songStabilizer;
 
-  Duration? _farSince, _nearSince, _passageDiffersSince;
+  bool _songMature = false; // false: a memória da música ainda segue o trecho
+  Duration? _farSince, _passageDiffersSince, _lastEvalAt;
+  Set<int>? _evidenceNotes; // notas novas a que o contador de evidência está ligado
+  double _evidenceSeconds = 0; // tempo acumulado com o trecho num vizinho E notas novas presentes
   MemoryEvent _pending = MemoryEvent.none;
   KeyCandidate? _lastLabel;
-  int labelChanges = 0; // trocas do letreiro principal, qualquer que seja o mecanismo (métrica do experimento)
+  int labelChanges = 0; // trocas do letreiro principal, qualquer que seja o mecanismo
 
   TonalReading? _lastReading;
   TonalReading? get lastReading => _lastReading;
@@ -118,8 +138,7 @@ class TonalEngine {
     if (chroma.length != 12) return;
     if (passage.add(chroma, at)) passageStabilizer.reset();
     if (song.add(chroma, at)) {
-      songStabilizer.reset();
-      _clearTimers();
+      _resetSongState();
       _pending = MemoryEvent.silenceReset;
     }
   }
@@ -127,6 +146,8 @@ class TonalEngine {
   TonalReading? evaluate(Duration now) {
     var event = _pending;
     _pending = MemoryEvent.none;
+    final dt = _lastEvalAt == null ? 0.0 : _secs(now, _lastEvalAt!);
+    _lastEvalAt = now;
 
     // 1. trecho (igual ao plano 2)
     List<KeyCandidate>? pScores;
@@ -156,30 +177,33 @@ class TonalEngine {
         event,
         passageStabilizer.displayed,
         false,
+        0,
       );
       _lastReading = reading;
       return reading;
     }
 
     // 2. música
-    List<KeyCandidate>? sScores;
-    List<double>? sProfile;
     if (song.gapExceeded(now)) {
-      songStabilizer.reset();
-      _clearTimers();
+      _resetSongState();
       _lastReading = null;
       return null; // "Ouvindo..." como no plano 2
     }
-    sProfile = song.profile(now);
+    final sProfile = song.profile(now);
     if (sProfile == null || _isFlat(sProfile)) {
       _lastReading = null;
       return null;
     }
-    sScores = scorer.score(sProfile);
-    if (song.secondsInWindow < songConfig.followPassageSeconds) {
-      songStabilizer
-        ..displayed = passageStabilizer.displayed
-        ..challenge = null; // memória jovem segue o trecho
+    final sScores = scorer.score(sProfile);
+    final p = passageStabilizer.displayed;
+    if (!_songMature) {
+      songStabilizer.displayed = p; // memória jovem segue o trecho
+      songStabilizer.challenge = null;
+      if (song.secondsInWindow >= songConfig.youngSeconds &&
+          p != null &&
+          sScores.first.sameKey(p)) {
+        _songMature = true; // ...até concordar com ele
+      }
     } else {
       songStabilizer.update(
         now,
@@ -190,29 +214,51 @@ class TonalEngine {
     }
 
     // 3. reinícios por divergência entre trecho e música
-    final p = passageStabilizer.displayed;
     final s = songStabilizer.displayed;
+    var reportedEvidence = 0.0;
     if (p != null && s != null && !p.sameKey(s)) {
       _passageDiffersSince ??= now;
+      final notes = newNotesOf(s, p);
+      if (_evidenceNotes == null ||
+          _evidenceNotes!.intersection(notes).isEmpty) {
+        _evidenceSeconds = 0;
+        _evidenceNotes = notes;
+      }
       if (KeyStabilizer.isNeighbor(s, p)) {
         _farSince = null;
-        if (songConfig.nearResetSeconds > 0) {
-          _nearSince ??= now;
-          if (_secs(now, _nearSince!) >= songConfig.nearResetSeconds) {
-            _reseed();
-            event = MemoryEvent.nearReset;
-          }
+        if (pProfile != null &&
+            newNoteEvidence(
+              s,
+              p,
+              pProfile,
+              tolerance: songConfig.evidenceTolerance,
+              floorFraction: songConfig.evidenceFloor,
+            )) {
+          _evidenceSeconds += dt; // só conta enquanto as notas novas estão lá
+        } else {
+          _evidenceSeconds = (_evidenceSeconds - songConfig.evidenceDrain * dt)
+              .clamp(0.0, double.infinity); // ...e esvazia quando somem
+        }
+        reportedEvidence = _evidenceSeconds;
+        if (songConfig.nearResetSeconds > 0 &&
+            _evidenceSeconds >= songConfig.nearResetSeconds) {
+          _reseed();
+          event = MemoryEvent.neighborKeyConfirmed;
         }
       } else {
-        _nearSince = null;
+        _evidenceSeconds = 0;
+        _evidenceNotes = null;
         _farSince ??= now;
         if (_secs(now, _farSince!) >= songConfig.farResetSeconds) {
           _reseed();
-          event = MemoryEvent.farReset;
+          event = MemoryEvent.farKeyConfirmed;
         }
       }
     } else {
-      _clearTimers();
+      _farSince = null;
+      _passageDiffersSince = null;
+      _evidenceSeconds = 0;
+      _evidenceNotes = null;
     }
     final showPassage = _passageDiffersSince != null &&
         _secs(now, _passageDiffersSince!) >= songConfig.showPassageAfterSeconds;
@@ -226,6 +272,7 @@ class TonalEngine {
       event,
       passageStabilizer.displayed,
       showPassage,
+      reportedEvidence,
     );
     _lastReading = reading;
     return reading;
@@ -233,16 +280,22 @@ class TonalEngine {
 
   void _reseed() {
     song.seedFrom(passage);
-    songStabilizer
-      ..displayed = passageStabilizer.displayed
-      ..challenge = null;
-    _clearTimers();
+    songStabilizer.displayed = passageStabilizer.displayed;
+    songStabilizer.challenge = null;
+    _songMature = false; // volta a seguir o trecho até concordar
+    _farSince = null;
+    _passageDiffersSince = null;
+    _evidenceSeconds = 0;
+    _evidenceNotes = null;
   }
 
-  void _clearTimers() {
+  void _resetSongState() {
+    songStabilizer.reset();
+    _songMature = false;
     _farSince = null;
-    _nearSince = null;
     _passageDiffersSince = null;
+    _evidenceSeconds = 0;
+    _evidenceNotes = null;
   }
 
   double _secs(Duration now, Duration since) =>
@@ -263,6 +316,7 @@ class TonalEngine {
     MemoryEvent event,
     KeyCandidate? passageKey,
     bool showPassage,
+    double evidenceSeconds,
   ) {
     final displayed = stab.displayed;
     if ((displayed == null) != (_lastLabel == null) ||
@@ -290,6 +344,7 @@ class TonalEngine {
       showPassage: showPassage,
       event: event,
       songSeconds: song.secondsInWindow,
+      evidenceSeconds: evidenceSeconds,
     );
   }
 
@@ -298,8 +353,7 @@ class TonalEngine {
     passage.clear();
     song.clear();
     passageStabilizer.reset();
-    songStabilizer.reset();
-    _clearTimers();
+    _resetSongState();
     _lastLabel = null;
     labelChanges = 0;
     _pending = MemoryEvent.manualReset;
