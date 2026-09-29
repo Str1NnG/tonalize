@@ -141,6 +141,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         baseHoldSeconds: 4.0,
         neighborMargin: 0.08,
         neighborHoldSeconds: 6.0,
+        vetoByScaleNotes: vetoNotes,
       );
     }
 

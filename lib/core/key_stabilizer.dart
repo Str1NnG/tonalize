@@ -18,6 +18,8 @@ class KeyStabilizer {
     this.baseHoldSeconds = 4.0,
     this.neighborMargin = 0.08, // desafiante vizinho (quinta, relativa, paralela): 0,08 durante 6 s
     this.neighborHoldSeconds = 6.0,
+    this.vetoByScaleNotes = false,
+    this.vetoTolerance = 0.8,
   });
 
   final double minSeconds;
@@ -25,13 +27,31 @@ class KeyStabilizer {
   final double baseHoldSeconds;
   final double neighborMargin;
   final double neighborHoldSeconds;
+  final bool vetoByScaleNotes;
+  final double vetoTolerance;
 
   KeyCandidate? displayed;
   Challenge? challenge;
   int switches = 0; // trocas do letreiro desde o último reset (métrica "trocas por minuto")
 
+  static const _major = {0, 2, 4, 5, 7, 9, 11};
+  static const _minor = {0, 2, 3, 5, 7, 8, 10, 11}; // menor natural + sensível (7ª maior)
+  static Set<int> scaleOf(KeyCandidate k) =>
+      {for (final d in (k.major ? _major : _minor)) (k.tonic + d) % 12};
+
+  /// true = a troca é vetada: as notas exclusivas da desafiante somam menos que as exclusivas da exibida.
+  static bool vetoed(KeyCandidate displayed, KeyCandidate challenger,
+      List<double> profile, double tolerance) {
+    final a = scaleOf(displayed), b = scaleOf(challenger);
+    final onlyA = a.difference(b), onlyB = b.difference(a);
+    if (onlyA.isEmpty || onlyB.isEmpty) return false; // mesma escala (relativos): decide a margem, como antes
+    double sum(Set<int> s) => s.fold(0.0, (acc, i) => acc + profile[i]);
+    return sum(onlyB) < tolerance * sum(onlyA);
+  }
+
   /// [scores]: as 24 candidatas ordenadas por r decrescente.
-  void update(Duration now, List<KeyCandidate> scores, double secondsInWindow) {
+  void update(Duration now, List<KeyCandidate> scores, double secondsInWindow,
+      {List<double>? profile}) {
     if (scores.isEmpty) return;
     final best = scores.first;
     if (displayed == null) {
@@ -52,6 +72,15 @@ class KeyStabilizer {
       challenge = null;
       return;
     } // vantagem insuficiente: sem desafio
+
+    // Veto por notas da escala (Fase 5)
+    if (vetoByScaleNotes &&
+        profile != null &&
+        vetoed(displayed!, best, profile, vetoTolerance)) {
+      challenge = null;
+      return;
+    }
+
     if (challenge == null || !challenge!.key.sameKey(best)) {
       // novo desafio começa a contar
       challenge = Challenge(best, now, hold);

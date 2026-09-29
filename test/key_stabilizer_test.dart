@@ -231,4 +231,83 @@ void main() {
       expect(stabilizer.challenge, isNull);
     });
   });
+
+  group('KeyStabilizer Fase 5 - Veto por notas da escala', () {
+    test('escala de Ré maior x Lá maior, Si menor e Fá# menor', () {
+      final scaleD = KeyStabilizer.scaleOf(dMajor);
+      expect(scaleD, equals({2, 4, 6, 7, 9, 11, 1}));
+
+      final scaleA = KeyStabilizer.scaleOf(aMajor);
+      expect(scaleA, equals({9, 11, 1, 2, 4, 6, 8}));
+
+      // Exclusivas: D tem Sol (7), A tem Sol# (8)
+      expect(scaleD.difference(scaleA), equals({7}));
+      expect(scaleA.difference(scaleD), equals({8}));
+
+      // D Maior x B Menor (relativos): vetoed é false
+      expect(
+        KeyStabilizer.vetoed(dMajor, bMinor, List.filled(12, 1.0), 0.8),
+        isFalse,
+      );
+
+      // D Maior x F# Menor: exclusivas são {Sol=7} e {Sol#=8, Fá=5}
+      final scaleFsm = KeyStabilizer.scaleOf(fsMinor);
+      expect(scaleD.difference(scaleFsm), equals({7}));
+      expect(scaleFsm.difference(scaleD), contains(8));
+    });
+
+    test('veto com Sol = 0.10 e Sol# = 0.01 impede troca mesmo com vantagem de r', () {
+      final stabilizer = KeyStabilizer(vetoByScaleNotes: true, vetoTolerance: 0.8);
+      stabilizer.update(
+        Duration.zero,
+        buildScores(top: dMajor, rTop: 0.8, second: aMajor, rSecond: 0.7),
+        2.0,
+      );
+      expect(stabilizer.displayed?.label, 'D Maior');
+
+      // Perfil com Sol (7) alto e Sol# (8) quase nulo
+      final profile = List<double>.filled(12, 0.0);
+      profile[7] = 0.10; // Sol
+      profile[8] = 0.01; // Sol#
+
+      // A vence D por 0.15 durante 10s (mais que os 6s necessários)
+      for (var ms = 500; ms <= 10000; ms += 500) {
+        stabilizer.update(
+          Duration(milliseconds: ms),
+          buildScores(top: aMajor, rTop: 0.95, second: dMajor, rSecond: 0.80),
+          10.0,
+          profile: profile,
+        );
+      }
+
+      // Não deve ter trocado nem mantido desafio ativo por causa do veto
+      expect(stabilizer.displayed?.label, 'D Maior');
+      expect(stabilizer.challenge, isNull);
+    });
+
+    test('sem veto ou com Sol# = 0.10 e Sol = 0.01 a troca acontece', () {
+      final stabilizer = KeyStabilizer(vetoByScaleNotes: true, vetoTolerance: 0.8);
+      stabilizer.update(
+        Duration.zero,
+        buildScores(top: dMajor, rTop: 0.8, second: aMajor, rSecond: 0.7),
+        2.0,
+      );
+
+      // Perfil onde Sol# (8) está presente e Sol (7) está baixo
+      final profile = List<double>.filled(12, 0.0);
+      profile[7] = 0.01; // Sol
+      profile[8] = 0.10; // Sol#
+
+      for (var ms = 500; ms <= 7000; ms += 500) {
+        stabilizer.update(
+          Duration(milliseconds: ms),
+          buildScores(top: aMajor, rTop: 0.95, second: dMajor, rSecond: 0.80),
+          10.0,
+          profile: profile,
+        );
+      }
+
+      expect(stabilizer.displayed?.label, 'A Maior');
+    });
+  });
 }

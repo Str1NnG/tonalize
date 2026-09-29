@@ -91,6 +91,8 @@ class TonalEngine {
       neighborMargin: this.passageStabilizer.neighborMargin,
       baseHoldSeconds: songConfig.baseHoldSeconds,
       neighborHoldSeconds: songConfig.neighborHoldSeconds,
+      vetoByScaleNotes: this.passageStabilizer.vetoByScaleNotes,
+      vetoTolerance: this.passageStabilizer.vetoTolerance,
     );
   }
 
@@ -135,7 +137,12 @@ class TonalEngine {
       pProfile = passage.profile(now);
       if (pProfile != null && !_isFlat(pProfile)) {
         pScores = scorer.score(pProfile);
-        passageStabilizer.update(now, pScores, passage.secondsInWindow);
+        passageStabilizer.update(
+          now,
+          pScores,
+          passage.secondsInWindow,
+          profile: pProfile,
+        );
       }
     }
     if (!songConfig.enabled) {
@@ -174,7 +181,12 @@ class TonalEngine {
         ..displayed = passageStabilizer.displayed
         ..challenge = null; // memória jovem segue o trecho
     } else {
-      songStabilizer.update(now, sScores, song.secondsInWindow);
+      songStabilizer.update(
+        now,
+        sScores,
+        song.secondsInWindow,
+        profile: sProfile,
+      );
     }
 
     // 3. reinícios por divergência entre trecho e música
