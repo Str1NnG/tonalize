@@ -6,6 +6,7 @@ class FieldEntry {
   final int? id;
   final String dateTime;
   final String keyShown;
+  final String? passage;
   final String secondShown;
   final double confidence;
   final String answer; // 'acertou' | 'errou'
@@ -14,6 +15,7 @@ class FieldEntry {
     this.id,
     required this.dateTime,
     required this.keyShown,
+    this.passage,
     required this.secondShown,
     required this.confidence,
     required this.answer,
@@ -24,6 +26,7 @@ class FieldEntry {
       'id': id,
       'dateTime': dateTime,
       'keyShown': keyShown,
+      'passage': passage,
       'secondShown': secondShown,
       'confidence': confidence,
       'answer': answer,
@@ -35,6 +38,7 @@ class FieldEntry {
       id: map['id'] as int?,
       dateTime: map['dateTime'] as String,
       keyShown: map['keyShown'] as String,
+      passage: map['passage'] as String?,
       secondShown: map['secondShown'] as String,
       confidence: (map['confidence'] as num).toDouble(),
       answer: map['answer'] as String,
@@ -54,7 +58,7 @@ class DatabaseHelper {
     final path = join(documentsDirectory.path, 'keyfinder.db');
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -66,6 +70,7 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         dateTime TEXT NOT NULL,
         keyShown TEXT NOT NULL,
+        passage TEXT,
         secondShown TEXT NOT NULL,
         confidence REAL NOT NULL,
         answer TEXT NOT NULL
@@ -78,6 +83,9 @@ class DatabaseHelper {
         sessionId TEXT NOT NULL,
         ts REAL NOT NULL,
         displayed TEXT NOT NULL,
+        passage TEXT,
+        songSeconds REAL,
+        event TEXT,
         best TEXT NOT NULL,
         rBest REAL NOT NULL,
         rDisplayed REAL NOT NULL,
@@ -116,6 +124,12 @@ class DatabaseHelper {
         )
       ''');
     }
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE readings ADD COLUMN passage TEXT;');
+      await db.execute('ALTER TABLE readings ADD COLUMN songSeconds REAL;');
+      await db.execute('ALTER TABLE readings ADD COLUMN event TEXT;');
+      await db.execute('ALTER TABLE field_log ADD COLUMN passage TEXT;');
+    }
   }
 
   Future<int> addFieldEntry(FieldEntry entry) async {
@@ -147,11 +161,14 @@ class DatabaseHelper {
     await db.delete('field_log');
   }
 
-  // Métodos para readings da avaliação de pesquisa (Fase 4.2)
+  // Métodos para readings da avaliação de pesquisa (Fase 4.2 / Plano 3)
   Future<int> addReading({
     required String sessionId,
     required double ts,
     required String displayed,
+    String? passage,
+    double? songSeconds,
+    String? event,
     required String best,
     required double rBest,
     required double rDisplayed,
@@ -163,6 +180,9 @@ class DatabaseHelper {
       'sessionId': sessionId,
       'ts': ts,
       'displayed': displayed,
+      'passage': passage ?? '',
+      'songSeconds': songSeconds ?? 0.0,
+      'event': event ?? '',
       'best': best,
       'rBest': rBest,
       'rDisplayed': rDisplayed,
@@ -193,10 +213,10 @@ class DatabaseHelper {
     );
 
     final buffer = StringBuffer();
-    buffer.writeln('sessionId,ts,displayed,best,rBest,rDisplayed,challenge,config');
+    buffer.writeln('sessionId,ts,displayed,passage,songSeconds,event,best,rBest,rDisplayed,challenge,config');
     for (final r in rows) {
       buffer.writeln(
-        '${r['sessionId']},${r['ts']},${r['displayed']},${r['best']},${r['rBest']},${r['rDisplayed']},${r['challenge']},${r['config']}',
+        '${r['sessionId']},${r['ts']},${r['displayed']},${r['passage'] ?? ''},${r['songSeconds'] ?? 0.0},${r['event'] ?? ''},${r['best']},${r['rBest']},${r['rDisplayed']},${r['challenge']},${r['config']}',
       );
     }
     return buffer.toString();

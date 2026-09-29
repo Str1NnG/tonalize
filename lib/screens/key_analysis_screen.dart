@@ -85,15 +85,33 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     final stabMode = prefs.getString('stab_mode') ?? 'v2';
     _windowSeconds = prefs.getInt('window_s') ?? 20;
     final useHarmonics = prefs.getBool('harmonics') ?? true;
-    final profileName = prefs.getString('profiles') ?? 'Krumhansl';
+    final profileName = prefs.getString('profiles') ?? 'temperley';
     _logReadings = prefs.getBool('log_readings') ?? false;
+    final songMemoryEnabled = prefs.getBool('song_memory') ?? true;
+    final songHalfLife = prefs.getInt('song_halflife_s') ?? 60;
+    final songFar = prefs.getInt('song_far_s') ?? 12;
+    final songNear = prefs.getInt('song_near_s') ?? 45;
+    final vetoNotes = prefs.getBool('veto_notes') ?? false;
+
+    // Parse profile
+    ProfileSet profiles = ProfileSet.temperley;
+    final pLower = profileName.toLowerCase();
+    if (pLower.startsWith('temp') && pLower.contains('kp')) {
+      profiles = ProfileSet.temperleyKP;
+    } else if (pLower.startsWith('temp')) {
+      profiles = ProfileSet.temperley;
+    } else if (pLower.startsWith('aar')) {
+      profiles = ProfileSet.aarden;
+    } else if (pLower.startsWith('krum') || pLower == 'kk') {
+      profiles = ProfileSet.krumhansl;
+    }
 
     _sessionId = DateTime.now().toIso8601String();
-    _configString = '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profileName == "Temperley" ? "temp" : "kk"}';
-
-    final ProfileSet profiles = profileName == 'Temperley'
-        ? ProfileSet.temperley
-        : ProfileSet.krumhansl;
+    final songConfigStr = songMemoryEnabled
+        ? 'song$songHalfLife;far$songFar;near$songNear'
+        : 'nosong';
+    _configString =
+        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code};$songConfigStr${vetoNotes ? ";veto" : ""}';
 
     final ChromaAccumulator accumulator;
     final KeyStabilizer stabilizer;
@@ -126,10 +144,18 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       );
     }
 
+    final songConfig = SongMemoryConfig(
+      enabled: songMemoryEnabled,
+      halfLifeSeconds: songHalfLife.toDouble(),
+      farResetSeconds: songFar.toDouble(),
+      nearResetSeconds: songNear.toDouble(),
+    );
+
     _engine = TonalEngine(
       passage: accumulator,
       passageStabilizer: stabilizer,
       scorer: KeyScorer(profiles: profiles),
+      songConfig: songConfig,
     );
 
     await _audioService.startKey(
@@ -154,22 +180,20 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       if (!_isListening) return;
       final reading = _engine.evaluate(_stopwatch.elapsed);
 
-      if (reading != null && reading.autoReset) {
-        _stopwatch.reset();
-        _stopwatch.start();
-        if (mounted) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nova música? Leitura reiniciada'),
-              duration: Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+      // Avisos de eventos de memória (Fase 4.1)
+      if (reading != null && reading.event != MemoryEvent.none) {
+        if (reading.event == MemoryEvent.silenceReset) {
+          _stopwatch.reset();
+          _stopwatch.start();
+          _showSnackBar('Nova música? Leitura reiniciada');
+        } else if (reading.event == MemoryEvent.farReset) {
+          _showSnackBar('Tom mudou — memória da música reiniciada');
+        } else if (reading.event == MemoryEvent.nearReset) {
+          _showSnackBar('Tom vizinho sustentado — memória reiniciada');
         }
       }
 
-      // Registro de leituras para a monografia (Fase 4.2)
+      // Registro de leituras para a monografia (Fase 4.2 / 4.3)
       if (reading != null && _logReadings) {
         final nowTs = _stopwatch.elapsedMilliseconds / 1000.0;
         final challengeStr = reading.challenge != null
@@ -186,6 +210,9 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
           sessionId: _sessionId,
           ts: nowTs,
           displayed: reading.displayed?.label ?? '',
+          passage: reading.passage?.label ?? '',
+          songSeconds: reading.songSeconds,
+          event: reading.event == MemoryEvent.none ? '' : reading.event.name,
           best: reading.best.label,
           rBest: reading.best.r,
           rDisplayed: rDisp,
@@ -200,6 +227,18 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         });
       }
     });
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _stopListening() {
@@ -240,6 +279,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     final entry = FieldEntry(
       dateTime: DateTime.now().toIso8601String(),
       keyShown: displayedKey.label,
+      passage: _currentReading?.passage?.label,
       secondShown: _currentReading?.second.label ?? '--',
       confidence: _currentReading?.confidence ?? 0.0,
       answer: answer,
@@ -385,6 +425,18 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                           fontSize: 26,
                           color: theme.textTheme.bodyMedium?.color,
                           letterSpacing: 1.5,
+                        ),
+                      ),
+                    ],
+                    if (_currentReading?.showPassage == true &&
+                        _currentReading?.passage != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'agora: ${_currentReading!.passage!.shortLabel}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.secondary,
                         ),
                       ),
                     ],
@@ -548,12 +600,12 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
               padding: const EdgeInsets.only(bottom: 12.0, top: 4.0),
               child: Column(
                 children: [
-                  // Métrica de estabilidade (trocas: N · mm:ss)
+                  // Métrica de estabilidade (trocas: N · mm:ss · memória: mm:ss)
                   if (_isListening)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10.0),
                       child: Text(
-                        "trocas: ${_engine.switches}  ·  ${_formatDuration(_stopwatch.elapsed)}",
+                        "trocas: ${_engine.switches}  ·  ${_formatDuration(_stopwatch.elapsed)}  ·  memória: ${_formatDuration(Duration(seconds: (_currentReading?.songSeconds ?? 0.0).round()))}",
                         style: theme.textTheme.bodySmall?.copyWith(
                           fontSize: 12,
                           color: theme.textTheme.bodySmall?.color
@@ -564,10 +616,10 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Botão de Reiniciar Leitura (RF05)
+                      // Botão de Nova Música (RF05)
                       IconButton.filledTonal(
                         icon: const Icon(Icons.refresh_rounded),
-                        tooltip: 'Reiniciar leitura',
+                        tooltip: 'Nova música',
                         iconSize: 30,
                         onPressed: _isListening ? _resetAnalysis : null,
                       ),

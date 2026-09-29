@@ -184,6 +184,7 @@ class KeyCandidate {
   String get name => noteNames[tonic];
   String get mode => major ? 'Maior' : 'Menor';
   String get label => '$name $mode';
+  String get shortLabel => '$name${major ? "" : "m"}';
 
   bool sameKey(KeyCandidate? o) =>
       o != null && o.tonic == tonic && o.major == major;
