@@ -1,0 +1,14 @@
+profiles: [krumhansl, temperley, temperleyKP, aarden]
+minor_profiles: [same, krumhansl, temperley, aarden]
+bass_share: [0, 0.15, 0.25, 0.4]
+evidence_floor: [0.25, 0.5, 0.75]
+song_near_s: [30, 45, 90]
+strict_notes: [false, true]
+fixed:
+  window_s: 20
+  song_halflife_s: 60
+  song_far_s: 12
+  evidence_tol: 0.8
+  evidence_drain: 0.5
+  harmonics: on
+  bass_conf: 0.85

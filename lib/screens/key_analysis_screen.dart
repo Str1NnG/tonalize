@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../bench/bench_session.dart';
+import '../bench/bench_song.dart';
 import '../core/tonal_engine.dart';
 import '../helpers/database_helper.dart';
 import '../services/audio_service.dart';
@@ -9,7 +11,8 @@ import '../widgets/chroma_bars.dart';
 enum Sensitivity { baixo, medio, alto }
 
 class KeyAnalysisScreen extends StatefulWidget {
-  const KeyAnalysisScreen({super.key});
+  final BenchSong? benchSong;
+  const KeyAnalysisScreen({super.key, this.benchSong});
 
   @override
   State<KeyAnalysisScreen> createState() => _KeyAnalysisScreenState();
@@ -28,6 +31,11 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
   Timer? _evalTimer;
   TonalReading? _currentReading;
 
+  // Bancada de testes
+  BenchSession? _benchSession;
+  int _lastAudioMs = 0;
+  bool _sessionCompleted = false;
+
   // Parâmetros de calibração / experimento
   int _windowSeconds = 20;
   String _sessionId = '';
@@ -39,6 +47,14 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadPreferences();
+    if (widget.benchSong != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_isListening) {
+          _startListening();
+          setState(() {});
+        }
+      });
+    }
   }
 
   Future<void> _loadPreferences() async {
@@ -184,6 +200,16 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       songConfig: songConfig,
     );
 
+    if (widget.benchSong != null) {
+      final benchDir = await _audioService.getBenchDir();
+      _benchSession = await BenchSession.start(
+        song: widget.benchSong!,
+        benchRootDir: benchDir,
+        configString: _configString,
+      );
+      _sessionCompleted = false;
+    }
+
     await _audioService.startKey(
       sensitivity: _sensitivity.index,
       harmonics: useHarmonics ? 4 : 1,
@@ -195,12 +221,16 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     _chromaSubscription?.cancel();
     _chromaSubscription = _audioService.chromaStream().listen(
       (frame) {
-        _engine.addFrame(
-          frame.chroma,
-          _stopwatch.elapsed,
-          bassPc: frame.bassPc,
-          bassProb: frame.bassProb,
-        );
+        _lastAudioMs = frame.tAudioMs;
+        _benchSession?.addFrame(frame);
+        if (frame.chroma != null) {
+          _engine.addFrame(
+            frame.chroma!,
+            _stopwatch.elapsed,
+            bassPc: frame.bassPc,
+            bassProb: frame.bassProb,
+          );
+        }
       },
       onError: (err) {
         debugPrint("Erro no stream de áudio: $err");
@@ -211,6 +241,16 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     _evalTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (!_isListening) return;
       final reading = _engine.evaluate(_stopwatch.elapsed);
+
+      // Bancada de testes: gravar reading
+      if (reading != null && _benchSession != null) {
+        _benchSession!.addReading(
+          reading: reading,
+          tAudioMs: _lastAudioMs,
+          labelChanges: _engine.switches,
+          isSongMature: _engine.isSongMature,
+        );
+      }
 
       // Avisos de eventos de memória (Fase 4.1)
       if (reading != null && reading.event != MemoryEvent.none) {
@@ -272,6 +312,205 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+
+  void _onMarkTapped(String label) {
+    if (_benchSession != null) {
+      _benchSession!.addMark(label, tAudioMs: _lastAudioMs);
+      _showSnackBar('Marcação: $label');
+    }
+  }
+
+  Future<void> _handleExitWithoutEnding() async {
+    if (_benchSession != null && !_sessionCompleted) {
+      _sessionCompleted = true;
+      if (_stopwatch.elapsed.inSeconds < 5) {
+        try {
+          if (await _benchSession!.sessionDir.exists()) {
+            await _benchSession!.sessionDir.delete(recursive: true);
+          }
+        } catch (_) {}
+      } else {
+        await _benchSession!.completeSession(
+          verdictResult: 'incompleta',
+          finalLabel: _engine.displayed?.label ?? '',
+          finalSecond: _currentReading?.second.label ?? '',
+          notes: 'Encerrado sem veredicto (saiu da tela)',
+        );
+      }
+    }
+  }
+
+  Future<void> _showVerdictSheet() async {
+    if (_benchSession == null || widget.benchSong == null) return;
+    final song = widget.benchSong!;
+    final displayedLabel = _engine.displayed?.label ?? 'N/A';
+    final secondLabel = _currentReading?.second.label ?? 'N/A';
+    final top3 = _benchSession!.getFinalBarsTop3();
+    final top3Str = top3.isNotEmpty ? top3.join(' · ') : '--';
+
+    String verdict = 'acertou';
+    final notesController = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final theme = Theme.of(context);
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Veredicto da Bancada',
+                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${song.number.toString().padLeft(2, '0')}. ${song.title}',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text('Referência esperada: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                              Text(song.displayReference, style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Text('Tom final exibido: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                              Text(displayedLabel, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Text('2ª opção: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                              Text(secondLabel),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Text('Top 3 barras finais (3s): ', style: TextStyle(fontWeight: FontWeight.w600)),
+                              Text(top3Str, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Classificação:', style: theme.textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _verdictChip('acertou', 'Acertou', Colors.green, verdict, (val) => setSheetState(() => verdict = val)),
+                        _verdictChip('errou', 'Errou', Colors.red, verdict, (val) => setSheetState(() => verdict = val)),
+                        _verdictChip('parcial', 'Parcial', Colors.orange, verdict, (val) => setSheetState(() => verdict = val)),
+                        _verdictChip('referencia_duvidosa', 'Ref. Duvidosa', Colors.purple, verdict, (val) => setSheetState(() => verdict = val)),
+                        _verdictChip('descartar', 'Descartar', Colors.grey, verdict, (val) => setSheetState(() => verdict = val)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: notesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Notas / Observações (opcional)',
+                        hintText: 'Ex: Começou em G, modulou para A...',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.check),
+                        label: const Text('SALVAR SESSÃO', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          _sessionCompleted = true;
+                          await _benchSession!.completeSession(
+                            verdictResult: verdict,
+                            finalLabel: displayedLabel,
+                            finalSecond: secondLabel,
+                            notes: notesController.text.trim(),
+                          );
+                          _stopListening();
+                          if (context.mounted) {
+                            Navigator.pop(context); // close sheet
+                          }
+                          if (mounted) {
+                            Navigator.pop(this.context, true); // return to bench_screen
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _verdictChip(
+    String key,
+    String label,
+    Color color,
+    String current,
+    ValueChanged<String> onSelect,
+  ) {
+    final isSelected = current == key;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: color.withValues(alpha: 0.25),
+      side: BorderSide(color: isSelected ? color : Colors.grey.shade400),
+      labelStyle: TextStyle(
+        color: isSelected ? color : null,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      onSelected: (_) => onSelect(key),
     );
   }
 
@@ -418,23 +657,52 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     // Indicador de desafio (Fase 3)
     final challenge = _currentReading?.challenge;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Análise de Tonalidade"),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_outlined),
-            tooltip: 'Sensibilidade',
-            onPressed: _showSensitivityDialog,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          _handleExitWithoutEnding();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.benchSong != null
+              ? "Bancada #${widget.benchSong!.number}"
+              : "Análise de Tonalidade"),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          actions: [
+            if (widget.benchSong != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.amber.shade900,
+                    foregroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onPressed: _showVerdictSheet,
+                  child: const Text(
+                    'ENCERRAR',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ),
+            IconButton(
+              icon: const Icon(Icons.tune_outlined),
+              tooltip: 'Sensibilidade',
+              onPressed: _showSensitivityDialog,
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (widget.benchSong != null) ...[
+                _buildBenchBanner(theme, widget.benchSong!),
+                _buildBenchMarkChips(theme),
+                const Divider(height: 1),
+              ],
+              const SizedBox(height: 8),
             // Seção Superior: Tonalidade Detectada
             Expanded(
               flex: 4,
@@ -693,7 +961,19 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                         ),
                       ),
                       const SizedBox(width: 24),
-                      const SizedBox(width: 48), // espaçador para balancear com o refresh
+                      if (widget.benchSong != null)
+                        IconButton.filledTonal(
+                          icon: const Icon(Icons.flag_rounded),
+                          tooltip: 'Encerrar sessão',
+                          iconSize: 28,
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.amber.shade900.withValues(alpha: 0.2),
+                            foregroundColor: Colors.amber.shade900,
+                          ),
+                          onPressed: _showVerdictSheet,
+                        )
+                      else
+                        const SizedBox(width: 48), // espaçador para balancear com o refresh
                     ],
                   ),
                 ],
@@ -701,6 +981,57 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
             ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildBenchBanner(ThemeData theme, BenchSong song) {
+    final numStr = song.number.toString().padLeft(2, '0');
+    final timeStr = _formatDuration(_stopwatch.elapsed);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.7),
+      child: Row(
+        children: [
+          Icon(Icons.science, size: 18, color: theme.colorScheme.onPrimaryContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'BANCADA · $numStr · ${song.title} · ref. ${song.displayReference} · $timeStr',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenchMarkChips(ThemeData theme) {
+    const marks = ['intro', 'verso', 'refrão', 'ponte', 'modulação', 'nova música', 'fim'];
+    return Container(
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: marks.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, index) {
+          final label = marks[index];
+          return ActionChip(
+            label: Text(label, style: const TextStyle(fontSize: 11.5)),
+            onPressed: _isListening ? () => _onMarkTapped(label) : null,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+          );
+        },
       ),
     );
   }

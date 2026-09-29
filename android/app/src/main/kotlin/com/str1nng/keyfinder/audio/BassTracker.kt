@@ -50,8 +50,16 @@ class BassTracker(
         a2 = ((1.0 - alpha) / a0).toFloat()
     }
 
-    /** [buffer] é o bloco completo do dispatcher; [newSamples] é quantas amostras dele são novas (tamanho − sobreposição). */
-    fun track(buffer: FloatArray, newSamples: Int): Bass? {
+    data class BassResult(
+        val pitchClass: Int,       // -1 se rejeitado
+        val probability: Float,    // 0f se rejeitado
+        val hz: Float,             // r.pitch
+        val rawProbability: Float, // r.probability
+        val isPitched: Boolean     // r.isPitched
+    )
+
+    /** Retorna informações completas do detector YIN, permitindo reaplicar limiares offline. */
+    fun trackFull(buffer: FloatArray, newSamples: Int): BassResult {
         val start = buffer.size - newSamples
         // desloca a janela filtrada e filtra só as amostras novas
         System.arraycopy(window, newSamples, window, 0, windowSize - newSamples)
@@ -66,12 +74,27 @@ class BassTracker(
             window[w++] = y0
         }
         filled = minOf(windowSize, filled + newSamples)
-        if (filled < windowSize) return null
+        if (filled < windowSize) {
+            return BassResult(-1, 0f, 0f, 0f, false)
+        }
         val r = yin.getPitch(window)
-        if (!r.isPitched || r.pitch < minHz || r.pitch > maxHz || r.probability < minProbability) return null
-        val midi = 69.0 + 12.0 * (ln(r.pitch / 440.0) / ln(2.0))
-        return Bass(((midi.roundToInt() % 12) + 12) % 12, r.probability, r.pitch)
+        val accepted = r.isPitched && r.pitch in minHz..maxHz && r.probability >= minProbability
+        val pc = if (accepted) {
+            val midi = 69.0 + 12.0 * (ln(r.pitch / 440.0) / ln(2.0))
+            ((midi.roundToInt() % 12) + 12) % 12
+        } else {
+            -1
+        }
+        val prob = if (accepted) r.probability else 0f
+        return BassResult(pc, prob, r.pitch, r.probability, r.isPitched)
     }
+
+    /** [buffer] é o bloco completo do dispatcher; [newSamples] é quantas amostras dele são novas (tamanho − sobreposição). */
+    fun track(buffer: FloatArray, newSamples: Int): Bass? {
+        val res = trackFull(buffer, newSamples)
+        return if (res.pitchClass >= 0) Bass(res.pitchClass, res.probability, res.hz) else null
+    }
+
 
     fun reset() {
         window.fill(0f)

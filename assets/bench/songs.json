@@ -1,0 +1,562 @@
+[
+  {
+    "number": 1,
+    "title": "Ruja o Leão (ao vivo)",
+    "artist": "Fhop Music",
+    "youtube": "https://www.youtube.com/watch?v=jtm9HiYZ7UQ",
+    "duration_s": 499,
+    "reference": {
+      "key": "A",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "A", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 2,
+    "title": "O Encontro",
+    "artist": "Valesca Mayssa, Jefferson & Suellen",
+    "youtube": "",
+    "duration_s": 516,
+    "reference": {
+      "key": "F#",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "F#", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 3,
+    "title": "Rei e Santo",
+    "artist": "Canção & Louvor",
+    "youtube": "",
+    "duration_s": 414,
+    "reference": {
+      "key": "Eb",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "Eb", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 4,
+    "title": "Reacende a Chama",
+    "artist": "Sued Silva",
+    "youtube": "",
+    "duration_s": 349,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 5,
+    "title": "Efésios 6 (ao vivo)",
+    "artist": "Anderson Freire",
+    "youtube": "",
+    "duration_s": 358,
+    "reference": {
+      "key": "G",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 6,
+    "title": "Quero Conhecer Jesus (cover)",
+    "artist": "Cia. SALT",
+    "youtube": "",
+    "duration_s": 416,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 7,
+    "title": "Atos 2",
+    "artist": "Gabriela Rocha",
+    "youtube": "https://www.youtube.com/watch?v=WWrU6LC_4ho",
+    "duration_s": 317,
+    "reference": {
+      "key": "Bb",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "Bb", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 8,
+    "title": "Lindo És + Só Quero Ver Você",
+    "artist": "Juliano Son (Livres)",
+    "youtube": "",
+    "duration_s": 447,
+    "reference": {
+      "key": "E",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "E", "mode": "major"}
+      ],
+      "notes": "Duas músicas"
+    }
+  },
+  {
+    "number": 9,
+    "title": "A Casa É Sua",
+    "artist": "Casa Worship, Julliany Souza, Leo Brandão",
+    "youtube": "",
+    "duration_s": 562,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 10,
+    "title": "Lugar Secreto",
+    "artist": "Gabriela Rocha",
+    "youtube": "",
+    "duration_s": 423,
+    "reference": {
+      "key": "A",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "A", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 11,
+    "title": "Ousado Amor",
+    "artist": "Isaias Saad",
+    "youtube": "",
+    "duration_s": 337,
+    "reference": {
+      "key": "Bb",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "Bb", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 12,
+    "title": "Enche-me",
+    "artist": "Isaías Saad, Gabriela Rocha",
+    "youtube": "",
+    "duration_s": 448,
+    "reference": {
+      "key": "Ab",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "Ab", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 13,
+    "title": "Jeová Jireh",
+    "artist": "Aline Barros",
+    "youtube": "",
+    "duration_s": 524,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 14,
+    "title": "Vitorioso És",
+    "artist": "Gabriel Guedes",
+    "youtube": "",
+    "duration_s": 348,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 15,
+    "title": "João 20 + Pra Sempre (ao vivo)",
+    "artist": "Vitor Santana",
+    "youtube": "",
+    "duration_s": 286,
+    "reference": {
+      "key": "D",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "D", "mode": "major"}
+      ],
+      "notes": "Duas músicas"
+    }
+  },
+  {
+    "number": 16,
+    "title": "Melhor Amigo / O Que Seria de Mim? (ao vivo)",
+    "artist": "Nair Nany",
+    "youtube": "",
+    "duration_s": 679,
+    "reference": {
+      "key": "A",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "A", "mode": "major"}
+      ],
+      "notes": "Medley"
+    }
+  },
+  {
+    "number": 17,
+    "title": "Fogo em Teus Olhos",
+    "artist": "Anna Clara Rocha",
+    "youtube": "",
+    "duration_s": 487,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 18,
+    "title": "Tudo É Perda (ao vivo)",
+    "artist": "Felipe Rodrigues",
+    "youtube": "",
+    "duration_s": 519,
+    "reference": {
+      "key": "F#",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "F#", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 19,
+    "title": "Primeira Essência (ministração)",
+    "artist": "Felipe Rodrigues",
+    "youtube": "",
+    "duration_s": 346,
+    "reference": {
+      "key": "E",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "E", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 20,
+    "title": "Eis-me Aqui",
+    "artist": "Valesca Mayssa",
+    "youtube": "",
+    "duration_s": 477,
+    "reference": {
+      "key": "D",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "D", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 21,
+    "title": "Eu Sou Teu Pai",
+    "artist": "Valesca Mayssa",
+    "youtube": "",
+    "duration_s": 392,
+    "reference": {
+      "key": "E",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "E", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 22,
+    "title": "Quem É Esse? (ao vivo)",
+    "artist": "Julliany Souza",
+    "youtube": "",
+    "duration_s": 571,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 23,
+    "title": "Deserto",
+    "artist": "Maria Marçal",
+    "youtube": "",
+    "duration_s": 267,
+    "reference": {
+      "key": "F#",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "F#", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 24,
+    "title": "Bênçãos Que Não Têm Fim",
+    "artist": "Isadora Pompeo",
+    "youtube": "",
+    "duration_s": 210,
+    "reference": {
+      "key": "Db",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "Db", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 25,
+    "title": "Ele Não Desiste de Você",
+    "artist": "Maria Marçal",
+    "youtube": "",
+    "duration_s": 233,
+    "reference": {
+      "key": "F",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "F", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 26,
+    "title": "Medley Corinhos de Fogo (ao vivo)",
+    "artist": "Midian Lima",
+    "youtube": "",
+    "duration_s": 308,
+    "reference": {
+      "key": "F",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "F", "mode": "minor"}
+      ],
+      "notes": "Medley"
+    }
+  },
+  {
+    "number": 27,
+    "title": "500 Graus / Vai Queimar / Dia do Pentecostes / Desemborca o Vaso",
+    "artist": "Banda Som e Louvor",
+    "youtube": "",
+    "duration_s": 264,
+    "reference": {
+      "key": "A",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "A", "mode": "minor"}
+      ],
+      "notes": "Medley"
+    }
+  },
+  {
+    "number": 28,
+    "title": "Faraó ou Deus / Cadê o Vaso / Mestre / Sapato de Fogo / Altar Fumegando",
+    "artist": "Banda Som e Louvor",
+    "youtube": "",
+    "duration_s": 280,
+    "reference": {
+      "key": "D",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "D", "mode": "minor"}
+      ],
+      "notes": "Medley"
+    }
+  },
+  {
+    "number": 29,
+    "title": "João Viu (ao vivo)",
+    "artist": "Julia Vitória",
+    "youtube": "",
+    "duration_s": 293,
+    "reference": {
+      "key": "F#",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "F#", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 30,
+    "title": "Vem Senhor",
+    "artist": "Sara Evelyn",
+    "youtube": "",
+    "duration_s": 330,
+    "reference": {
+      "key": "D",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "D", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 31,
+    "title": "Joquebede (ao vivo)",
+    "artist": "Israel Santos",
+    "youtube": "",
+    "duration_s": 251,
+    "reference": {
+      "key": "E",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "E", "mode": "minor"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 32,
+    "title": "Além do Rio Azul",
+    "artist": "Banda Som e Louvor",
+    "youtube": "",
+    "duration_s": 375,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": ""
+    }
+  },
+  {
+    "number": 33,
+    "title": "João Viu / Sou um Milagre / Vou Seguir",
+    "artist": "Banda Som e Louvor",
+    "youtube": "",
+    "duration_s": 375,
+    "reference": {
+      "key": "G",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "G", "mode": "major"}
+      ],
+      "notes": "Medley"
+    }
+  },
+  {
+    "number": 34,
+    "title": "O Escudo",
+    "artist": "Maria Marçal / Voz da Verdade",
+    "youtube": "",
+    "duration_s": 300,
+    "reference": {
+      "key": "D",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "D", "mode": "major"}
+      ],
+      "notes": "Controle (Plano 2/3)"
+    }
+  },
+  {
+    "number": 35,
+    "title": "Vem Me Buscar",
+    "artist": "Jefferson & Suellen",
+    "youtube": "",
+    "duration_s": 300,
+    "reference": {
+      "key": "Eb",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {"from_s": 0, "key": "Eb", "mode": "minor"}
+      ],
+      "notes": "Controle (Fase 7 baixo)"
+    }
+  }
+]

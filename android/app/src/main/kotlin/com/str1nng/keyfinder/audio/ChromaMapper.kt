@@ -42,8 +42,15 @@ class ChromaMapper(
         return ((midi.roundToInt() % 12) + 12) % 12
     }
 
-    /** Perfil de 12 notas normalizado (soma 1) ou null se o bloco não tiver energia ou tonalidade. */
-    fun chroma(buffer: FloatArray): FloatArray? {
+    data class FrameResult(
+        val chroma: FloatArray?,       // normalizado com subarmônicos se passou no filtro, senão null
+        val rawChroma: FloatArray?,    // normalizado com subarmônicos mesmo se tonalness < minTonalness
+        val legacyChroma: FloatArray?, // normalizado sem subarmônicos (harmonics=1)
+        val tonalness: Float           // razão max/média
+    )
+
+    /** Processa o bloco calculando perfil com subarmônicos, legado e tonalidade. */
+    fun process(buffer: FloatArray): FrameResult? {
         require(buffer.size == fftSize) { "buffer deve ter $fftSize amostras" }
         val data = buffer.copyOf()
         fft.forwardTransform(data)
@@ -55,22 +62,43 @@ class ChromaMapper(
         val threshold = maxAmp * peakThreshold
 
         val out = FloatArray(12)
+        val legacy = FloatArray(12)
         for (k in kMin..kMax) {
             val a = amplitudes[k]
             if (a < threshold) continue
             if (peakThreshold > 0f && (a <= amplitudes[k - 1] || a < amplitudes[k + 1])) continue // só máximos locais
             val energy = a * a
             val t = targets[k]
-            for (h in 0 until harmonics) { val pc = t[h]; if (pc >= 0) out[pc] += weights[h] * energy }
+            for (h in 0 until harmonics) {
+                val pc = t[h]
+                if (pc >= 0) out[pc] += weights[h] * energy
+            }
+            val pc0 = t[0]
+            if (pc0 >= 0) legacy[pc0] += energy
         }
         val sum = out.sum()
         if (sum <= 0f) return null
-        if (minTonalness > 0f) {
-            var maxPc = 0f
-            for (v in out) if (v > maxPc) maxPc = v
-            if (maxPc / (sum / 12f) < minTonalness) return null
-        }
-        for (i in 0 until 12) out[i] /= sum
-        return out
+
+        var maxPc = 0f
+        for (v in out) if (v > maxPc) maxPc = v
+        val meanPc = sum / 12f
+        val tonalness = if (meanPc > 0f) maxPc / meanPc else 0f
+
+        val normOut = FloatArray(12) { i -> out[i] / sum }
+        val sumLegacy = legacy.sum()
+        val normLegacy = if (sumLegacy > 0f) FloatArray(12) { i -> legacy[i] / sumLegacy } else null
+
+        val accepted = if (minTonalness <= 0f || tonalness >= minTonalness) normOut else null
+
+        return FrameResult(
+            chroma = accepted,
+            rawChroma = normOut,
+            legacyChroma = normLegacy,
+            tonalness = tonalness
+        )
     }
+
+    /** Perfil de 12 notas normalizado (soma 1) ou null se o bloco não tiver energia ou tonalidade. */
+    fun chroma(buffer: FloatArray): FloatArray? = process(buffer)?.chroma
 }
+

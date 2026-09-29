@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/key_profiles.dart';
 import '../providers/theme_provider.dart';
+import 'bench_screen.dart';
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -550,6 +552,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _logReadings,
                 onChanged: _setLogReadings,
                 secondary: const Icon(Icons.save_as_outlined),
+              ),
+
+              const Divider(),
+
+              // Modo Bancada (Plano 4)
+              ListTile(
+                leading: const Icon(Icons.science_outlined),
+                title: const Text('Bancada de Testes (33 músicas)'),
+                subtitle: const Text('Captura de sessões para calibração offline'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BenchScreen()),
+                  );
+                },
               ),
 
               const Divider(),

@@ -37,14 +37,27 @@ class AudioEngine {
                     minTonalness = config.minTonalness
                 )
                 val bassTracker = if (config.bassEnabled) BassTracker() else null
-                addAudioProcessor(ChromaProcessor(mapper, bassTracker) { chroma, spl, bassPc, bassProb ->
-                    val payload = mapOf(
-                        "chroma" to chroma.map { it.toDouble() },
-                        "spl" to spl,
+                addAudioProcessor(ChromaProcessor(mapper, bassTracker) { tAudioMs, chroma, rawChroma, legacyChroma, levelDb, tonalness, bassPc, bassProb, bassHz, bassProbRaw, bassPitched ->
+                    val payload = mutableMapOf<String, Any>(
+                        "tAudioMs" to tAudioMs,
+                        "spl" to levelDb,
+                        "tonal" to tonalness.toDouble(),
                         "bassPc" to bassPc,
                         "bassProb" to bassProb,
+                        "bassHz" to bassHz,
+                        "bassProbRaw" to bassProbRaw,
+                        "bassPitched" to bassPitched
                     )
-                    main.post { chromaSink?.success(payload) }   // EventSink só pode ser chamado na thread principal
+                    if (chroma != null) {
+                        payload["chroma"] = chroma.map { it.toDouble() }
+                    }
+                    if (rawChroma != null) {
+                        payload["rawChroma"] = rawChroma.map { it.toDouble() }
+                    }
+                    if (legacyChroma != null) {
+                        payload["legacyChroma"] = legacyChroma.map { it.toDouble() }
+                    }
+                    main.post { chromaSink?.success(payload) } // EventSink só pode ser chamado na thread principal
                 })
             }
             Mode.TUNER -> AudioDispatcherFactory.fromDefaultMicrophone(44100, 2048, 0).apply {

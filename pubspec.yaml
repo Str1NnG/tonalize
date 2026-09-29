@@ -38,6 +38,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo.png
+    - assets/bench/songs.json
+
 
 # ADICIONE ESTE BLOCO INTEIRO NO FINAL DO ARQUIVO:
 flutter_launcher_icons:
