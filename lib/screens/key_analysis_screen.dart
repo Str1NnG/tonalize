@@ -92,8 +92,11 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     final songFar = prefs.getInt('song_far_s') ?? 12;
     final songNear = prefs.getInt('song_near_s') ?? 45;
     final evidenceTol = prefs.getDouble('evidence_tol') ?? 0.8;
+    final evidenceFloor = prefs.getDouble('evidence_floor') ?? 0.25;
+    final minSeconds = prefs.getInt('min_s') ?? 2;
     final evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
     final strictNotes = prefs.getBool('strict_notes') ?? false;
+    final minorProfileName = prefs.getString('minor_profiles') ?? 'same';
 
     // Parse profile
     ProfileSet profiles = ProfileSet.temperley;
@@ -108,12 +111,24 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       profiles = ProfileSet.krumhansl;
     }
 
+    // Parse minor profile
+    ProfileSet? minorProfiles;
+    final mpLower = minorProfileName.toLowerCase();
+    if (mpLower.startsWith('aar')) {
+      minorProfiles = ProfileSet.aarden;
+    } else if (mpLower.startsWith('krum') || mpLower == 'kk') {
+      minorProfiles = ProfileSet.krumhansl;
+    }
+
     _sessionId = DateTime.now().toIso8601String();
+    final minorCode = (minorProfiles != null && minorProfiles != profiles)
+        ? ';min-${minorProfiles.code}'
+        : '';
     final songConfigStr = songMemoryEnabled
-        ? 'song$songHalfLife;far$songFar;near$songNear;tol$evidenceTol;drain$evidenceDrain'
+        ? 'song$songHalfLife;far$songFar;near$songNear;tol$evidenceTol;floor$evidenceFloor;drain$evidenceDrain'
         : 'nosong';
     _configString =
-        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code};$songConfigStr${strictNotes ? ";strict" : ""}';
+        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code}$minorCode;$songConfigStr${strictNotes ? ";strict" : ""}';
 
     final ChromaAccumulator accumulator;
     final KeyStabilizer stabilizer;
@@ -125,7 +140,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         silenceResetSeconds: 4,
       );
       stabilizer = KeyStabilizer(
-        minSeconds: 2,
+        minSeconds: minSeconds.toDouble(),
         baseMargin: 0,
         neighborMargin: 0,
         baseHoldSeconds: 1.5,
@@ -138,13 +153,14 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         silenceResetSeconds: 4,
       );
       stabilizer = KeyStabilizer(
-        minSeconds: 2,
+        minSeconds: minSeconds.toDouble(),
         baseMargin: 0.05,
         baseHoldSeconds: 4.0,
         neighborMargin: 0.08,
         neighborHoldSeconds: 6.0,
         requireNewNotes: strictNotes,
         evidenceTolerance: evidenceTol,
+        evidenceFloor: evidenceFloor,
       );
     }
 
@@ -154,13 +170,14 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       farResetSeconds: songFar.toDouble(),
       nearResetSeconds: songNear.toDouble(),
       evidenceTolerance: evidenceTol,
+      evidenceFloor: evidenceFloor,
       evidenceDrain: evidenceDrain,
     );
 
     _engine = TonalEngine(
       passage: accumulator,
       passageStabilizer: stabilizer,
-      scorer: KeyScorer(profiles: profiles),
+      scorer: KeyScorer(profiles: profiles, minorProfiles: minorProfiles),
       songConfig: songConfig,
     );
 

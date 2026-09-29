@@ -71,7 +71,7 @@ void main() {
         expect(readingMaj, isNotNull);
         expect(readingMaj!.best.tonic, equals(tonic));
         expect(readingMaj.best.major, isTrue);
-        expect(engineMaj.displayed?.label, equals('${noteNames[tonic]} Maior'));
+        expect(engineMaj.displayed?.label, equals('${KeyCandidate(tonic, true, 0).name} Maior'));
 
         // Menor
         final engineMin = TonalEngine();
@@ -80,7 +80,7 @@ void main() {
         expect(readingMin, isNotNull);
         expect(readingMin!.best.tonic, equals(tonic));
         expect(readingMin.best.major, isFalse);
-        expect(engineMin.displayed?.label, equals('${noteNames[tonic]} Menor'));
+        expect(engineMin.displayed?.label, equals('${KeyCandidate(tonic, false, 0).name} Menor'));
       }
     });
 
@@ -163,7 +163,7 @@ void main() {
       expect(r48.reading?.displayed?.label, equals('D Maior'));
 
       final r70 = feed(engine, ebSeq, 22, start: 48);
-      expect(r70.reading?.displayed?.label, equals('D# Maior'));
+      expect(r70.reading?.displayed?.label, equals('Eb Maior'));
       final allEvents = [...r48.events, ...r70.events];
       expect(allEvents.contains(MemoryEvent.farKeyConfirmed), isTrue);
       expect(engine.labelChanges, equals(1));
@@ -383,7 +383,7 @@ void main() {
       feed(engine, versoSeq, 30);
       feedSilence(engine, 7, start: 30); // 30s a 37s
       final res = feed(engine, ebSeq, 8, start: 37); // até 45s
-      expect(res.reading?.displayed?.label, equals('D# Maior'));
+      expect(res.reading?.displayed?.label, equals('Eb Maior'));
       expect(engine.song.secondsInWindow, closeTo(8.0, 1.0));
       expect(res.events.contains(MemoryEvent.silenceReset), isTrue);
     });
@@ -406,6 +406,18 @@ void main() {
       final engine = TonalEngine();
       final res = feed(engine, versoSeq, 2.5);
       expect(res.reading?.displayed?.label, equals('D Maior'));
+    });
+
+    test('9b. Teto da memória jovem: amadurece aos 60s mesmo sem concordar com trecho', () {
+      final forced = _ForcedKeyStabilizer(const KeyCandidate(2, true, 0.9));
+      final engine = TonalEngine(passageStabilizer: forced);
+
+      feed(engine, refraoBSeq, 59.0);
+      expect(engine.isSongMature, isFalse);
+      expect(engine.displayed?.label, equals('D Maior'));
+
+      feed(engine, refraoBSeq, 2.0, start: 59.0); // t = 61.0s
+      expect(engine.isSongMature, isTrue);
     });
 
     test('10. Introdução numa região vizinha', () {
@@ -432,4 +444,15 @@ void main() {
       expect(resAfterReset.events.contains(MemoryEvent.manualReset), isTrue);
     });
   });
+}
+
+class _ForcedKeyStabilizer extends KeyStabilizer {
+  _ForcedKeyStabilizer(this.forced);
+  final KeyCandidate forced;
+
+  @override
+  KeyCandidate? get displayed => forced;
+
+  @override
+  void update(Duration now, List<KeyCandidate> scores, double secondsInWindow, {List<double>? profile}) {}
 }

@@ -181,7 +181,24 @@ class KeyCandidate {
 
   const KeyCandidate(this.tonic, this.major, this.r);
 
-  String get name => noteNames[tonic];
+  String get name {
+    if (major) {
+      return switch (tonic) {
+        1 => 'Db',
+        3 => 'Eb',
+        6 => 'Gb',
+        8 => 'Ab',
+        10 => 'Bb',
+        _ => noteNames[tonic],
+      };
+    } else {
+      return switch (tonic) {
+        3 => 'Eb',
+        10 => 'Bb',
+        _ => noteNames[tonic],
+      };
+    }
+  }
   String get mode => major ? 'Maior' : 'Menor';
   String get label => '$name $mode';
   String get shortLabel => '$name${major ? "" : "m"}';

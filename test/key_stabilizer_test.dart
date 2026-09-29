@@ -147,7 +147,7 @@ void main() {
           10.0,
         );
       }
-      expect(stabilizer.displayed?.label, 'D# Maior');
+      expect(stabilizer.displayed?.label, 'Eb Maior');
       expect(stabilizer.switches, 1);
     });
 
@@ -298,7 +298,7 @@ void main() {
           10.0,
         );
       }
-      expect(stab.displayed?.label, 'D# Maior');
+      expect(stab.displayed?.label, 'Eb Maior');
     });
   });
 }

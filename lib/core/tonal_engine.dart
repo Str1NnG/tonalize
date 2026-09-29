@@ -26,6 +26,7 @@ class SongMemoryConfig {
     this.halfLifeSeconds = 60, // o que soou há 1 min pesa metade
     this.silenceResetSeconds = 6, // pausa entre músicas
     this.youngSeconds = 30, // memória jovem: segue o trecho até ter 30 s E concordar com ele
+    this.youngMaxSeconds = 60, // ...ou, no máximo, até ter 60 s de áudio (teto: nunca copia o trecho para sempre)
     this.farResetSeconds = 12, // trecho num tom distante por 12 s -> a música mudou: reinicia a partir do trecho
     this.nearResetSeconds = 45, // trecho num tom vizinho COM notas novas por 45 s (acumulados) -> idem (0 = nunca)
     this.evidenceTolerance = 0.8, // ver newNoteEvidence
@@ -41,6 +42,7 @@ class SongMemoryConfig {
   final double halfLifeSeconds;
   final double silenceResetSeconds;
   final double youngSeconds;
+  final double youngMaxSeconds;
   final double farResetSeconds;
   final double nearResetSeconds;
   final double evidenceTolerance;
@@ -133,6 +135,7 @@ class TonalEngine {
   TonalReading? get lastReading => _lastReading;
   KeyCandidate? get displayed =>
       songConfig.enabled ? songStabilizer.displayed : passageStabilizer.displayed;
+  bool get isSongMature => _songMature;
 
   void addFrame(List<double> chroma, Duration at) {
     if (chroma.length != 12) return;
@@ -199,10 +202,11 @@ class TonalEngine {
     if (!_songMature) {
       songStabilizer.displayed = p; // memória jovem segue o trecho
       songStabilizer.challenge = null;
-      if (song.secondsInWindow >= songConfig.youngSeconds &&
-          p != null &&
-          sScores.first.sameKey(p)) {
-        _songMature = true; // ...até concordar com ele
+      if ((song.secondsInWindow >= songConfig.youngSeconds &&
+              p != null &&
+              sScores.first.sameKey(p)) ||
+          song.secondsInWindow >= songConfig.youngMaxSeconds) {
+        _songMature = true; // ...até concordar com ele, ou até o teto de 60 s
       }
     } else {
       songStabilizer.update(

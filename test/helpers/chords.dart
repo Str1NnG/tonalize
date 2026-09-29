@@ -27,6 +27,13 @@ final ebMaj = tri(3, 7, 10), abMaj = tri(8, 0, 3), bbMaj = tri(10, 2, 5);
 final fSharp7 = tetra(6, 10, 1, 4);
 final cSharp7 = tetra(1, 5, 8, 11); // C♯ E♯ G♯ B — dominante de Fá♯ menor
 final eSete = tetra(4, 8, 11, 2); // E G♯ B D — dominante de Lá maior
+final ebMin = tri(3, 6, 10),
+    bMaj = tri(11, 3, 6),
+    gbMaj = tri(6, 10, 1),
+    dbMaj = tri(1, 5, 8),
+    abMin = tri(8, 11, 3);
+final baladaEbm = mix([(ebMin, 4), (bMaj, 1), (gbMaj, 1), (dbMaj, 1), (abMin, 1)]);
+final baladaSemEnfase = mix([(ebMin, 1), (bMaj, 1), (gbMaj, 1), (dbMaj, 1)]);
 
 /// Soma ponderada de acordes: [(acorde, peso)].
 List<double> mix(List<(List<double>, double)> parts) {

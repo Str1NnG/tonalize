@@ -25,8 +25,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _songFarS = 12;
   int _songNearS = 45;
   double _evidenceTol = 0.8;
+  double _evidenceFloor = 0.25;
+  int _minS = 2;
   double _evidenceDrain = 0.5;
   bool _strictNotes = false;
+  String _minorProfiles = 'same';
 
   @override
   void initState() {
@@ -48,8 +51,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _songFarS = prefs.getInt('song_far_s') ?? 12;
       _songNearS = prefs.getInt('song_near_s') ?? 45;
       _evidenceTol = prefs.getDouble('evidence_tol') ?? 0.8;
+      _evidenceFloor = prefs.getDouble('evidence_floor') ?? 0.25;
+      _minS = prefs.getInt('min_s') ?? 2;
       _evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
       _strictNotes = prefs.getBool('strict_notes') ?? false;
+      _minorProfiles = prefs.getString('minor_profiles') ?? 'same';
     });
   }
 
@@ -129,6 +135,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('strict_notes', value);
     setState(() => _strictNotes = value);
+  }
+
+  Future<void> _setEvidenceFloor(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('evidence_floor', value);
+    setState(() => _evidenceFloor = value);
+  }
+
+  Future<void> _setMinS(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('min_s', value);
+    setState(() => _minS = value);
+  }
+
+  Future<void> _setMinorProfiles(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('minor_profiles', value);
+    setState(() => _minorProfiles = value);
   }
 
   String get _normalizedProfileValue {
@@ -261,6 +285,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
 
+              // Perfis do Modo Menor (minor_profiles)
+              ListTile(
+                leading: const Icon(Icons.music_note_outlined),
+                title: const Text('Perfis do Modo Menor'),
+                subtitle: Text(
+                  _minorProfiles == 'krumhansl'
+                      ? 'Krumhansl-Kessler'
+                      : _minorProfiles == 'aarden'
+                          ? 'Aarden-Essen (menor natural)'
+                          : 'Igual ao maior (padrão)',
+                ),
+                trailing: DropdownButton<String>(
+                  value: _minorProfiles,
+                  underline: const SizedBox(),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'same',
+                      child: Text('Igual ao maior (padrão)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'krumhansl',
+                      child: Text('Krumhansl-Kessler'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'aarden',
+                      child: Text('Aarden-Essen'),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) _setMinorProfiles(val);
+                  },
+                ),
+              ),
+
               const Divider(),
 
               // Grupo: Memória da Música (Dual Memory - Plano 3)
@@ -369,6 +427,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                     onChanged: (val) {
                       if (val != null) _setEvidenceTol(val);
+                    },
+                  ),
+                ),
+
+                // Piso da evidência (evidence_floor)
+                ListTile(
+                  leading: const Icon(Icons.vertical_align_bottom_outlined),
+                  title: const Text('Piso da Nota Nova (Energia Mínima)'),
+                  subtitle: Text(
+                    _evidenceFloor == 0.25
+                        ? '0,25 da média (padrão)'
+                        : '${_evidenceFloor.toStringAsFixed(2)} da média (filtra vazamento)',
+                  ),
+                  trailing: DropdownButton<double>(
+                    value: _evidenceFloor,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 0.25, child: Text('0,25 (padrão)')),
+                      DropdownMenuItem(value: 0.50, child: Text('0,50 (moderado)')),
+                      DropdownMenuItem(value: 0.75, child: Text('0,75 (antivazamento)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) _setEvidenceFloor(val);
+                    },
+                  ),
+                ),
+
+                // Áudio mínimo para exibição (min_s)
+                ListTile(
+                  leading: const Icon(Icons.timer_outlined),
+                  title: const Text('Áudio Mínimo para Exibição'),
+                  subtitle: Text('$_minS s antes do primeiro tom'),
+                  trailing: DropdownButton<int>(
+                    value: _minS,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 2, child: Text('2 s (padrão)')),
+                      DropdownMenuItem(value: 4, child: Text('4 s (mais estável)')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) _setMinS(val);
                     },
                   ),
                 ),

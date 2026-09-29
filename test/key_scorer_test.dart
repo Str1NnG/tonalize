@@ -55,5 +55,33 @@ void main() {
             reason: '${profileSet.label} deveria identificar Ré maior no verso');
       }
     });
+
+    test('4b. Menor natural (3.4.4): baladaEbm favorece Ebm em Aarden/Krumhansl e empata em Temperley', () {
+      final scorerAarden = KeyScorer(profiles: ProfileSet.aarden);
+      final scorerKrumhansl = KeyScorer(profiles: ProfileSet.krumhansl);
+      final scorerTemperley = KeyScorer(profiles: ProfileSet.temperley);
+
+      final scoresAarden = scorerAarden.score(baladaEbm);
+      expect(scoresAarden.first.tonic, 3);
+      expect(scoresAarden.first.major, isFalse);
+      expect(scoresAarden[0].r - scoresAarden[1].r, greaterThanOrEqualTo(0.10));
+
+      final scoresKrumhansl = scorerKrumhansl.score(baladaEbm);
+      expect(scoresKrumhansl.first.tonic, 3);
+      expect(scoresKrumhansl.first.major, isFalse);
+      expect(scoresKrumhansl[0].r - scoresKrumhansl[1].r, greaterThanOrEqualTo(0.10));
+
+      final scoresTemperley = scorerTemperley.score(baladaEbm);
+      expect(scoresTemperley.first.tonic, 3);
+      expect(scoresTemperley.first.major, isFalse);
+      expect((scoresTemperley[0].r - scoresTemperley[1].r).abs(), lessThan(0.01));
+
+      // Sem ênfase na tônica, todos dão Sol♭ maior (tonic 6, major):
+      for (final profileSet in ProfileSet.values) {
+        final top = KeyScorer(profiles: profileSet).score(baladaSemEnfase).first;
+        expect(top.tonic, 6);
+        expect(top.major, isTrue);
+      }
+    });
   });
 }

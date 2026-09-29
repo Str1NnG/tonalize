@@ -1,13 +1,15 @@
 import 'key_profiles.dart';
 
 class KeyScorer {
-  KeyScorer({this.profiles = ProfileSet.temperley});
+  KeyScorer({this.profiles = ProfileSet.temperley, ProfileSet? minorProfiles})
+      : minorProfiles = minorProfiles ?? profiles;
 
   final ProfileSet profiles;
+  final ProfileSet minorProfiles;
 
   List<KeyCandidate> score(List<double> profile) {
     final major = profiles.major;
-    final minor = profiles.minor;
+    final minor = minorProfiles.minor;
     final out = <KeyCandidate>[];
     for (var t = 0; t < 12; t++) {
       out.add(KeyCandidate(t, true, pearson(profile, rotated(major, t))));
