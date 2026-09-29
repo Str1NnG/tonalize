@@ -5,30 +5,43 @@ class ChromaAccumulator {
     this.windowSeconds = 20,
     this.halfLifeSeconds = 10,
     this.silenceResetSeconds = 4,
+    this.binSeconds = 0, // > 0: frames do mesmo intervalo são somados num só registro (memória longa fica leve)
   });
 
   final double windowSeconds;
   final double halfLifeSeconds;
   final double silenceResetSeconds;
+  final double binSeconds;
 
   final List<(Duration, List<double>)> _frames = [];
+  Duration? _lastFrameAt;
 
-  Duration? get lastAt => _frames.isEmpty ? null : _frames.last.$1;
+  Duration? get lastAt => _lastFrameAt;
 
-  /// Adiciona um frame. Retorna true se houve reinício automático por silêncio antes de adicionar.
   bool add(List<double> chroma, Duration at) {
     var reset = false;
     if (gapExceeded(at)) {
       clear();
       reset = true;
     }
-    _frames.add((at, chroma));
+    if (binSeconds > 0 &&
+        _frames.isNotEmpty &&
+        (at - _frames.last.$1).inMilliseconds < binSeconds * 1000) {
+      final (t, acc) = _frames.last;
+      _frames[_frames.length - 1] = (
+        t,
+        [for (var i = 0; i < 12; i++) acc[i] + chroma[i]]
+      );
+    } else {
+      _frames.add((at, List<double>.from(chroma)));
+    }
+    _lastFrameAt = at;
     return reset;
   }
 
   bool gapExceeded(Duration now) =>
-      lastAt != null &&
-      (now - lastAt!).inMilliseconds > silenceResetSeconds * 1000;
+      _lastFrameAt != null &&
+      (now - _lastFrameAt!).inMilliseconds > silenceResetSeconds * 1000;
 
   /// Soma ponderada por idade: peso = 0,5^(idade / meia-vida); frames mais velhos que a janela saem.
   List<double>? profile(Duration now) {
@@ -46,9 +59,20 @@ class ChromaAccumulator {
     return acc;
   }
 
-  double get secondsInWindow => _frames.length < 2
+  double get secondsInWindow => _frames.isEmpty || _lastFrameAt == null
       ? 0
-      : (_frames.last.$1 - _frames.first.$1).inMilliseconds / 1000.0;
+      : (_lastFrameAt! - _frames.first.$1).inMilliseconds / 1000.0;
 
-  void clear() => _frames.clear();
+  /// Recomeça com uma cópia dos registros de outra memória (reinício da memória da música a partir do trecho).
+  void seedFrom(ChromaAccumulator other) {
+    _frames
+      ..clear()
+      ..addAll(other._frames.map((f) => (f.$1, List<double>.from(f.$2))));
+    _lastFrameAt = other._lastFrameAt;
+  }
+
+  void clear() {
+    _frames.clear();
+    _lastFrameAt = null;
+  }
 }

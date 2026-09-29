@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:keyfinder/core/tonal_engine.dart';
+import 'helpers/chords.dart';
 
 void feedFrames(
   TonalEngine engine,
@@ -104,15 +105,15 @@ void main() {
       }
     });
 
-    test('Silêncio prolongado (> 4s) aciona reinício automático e zera displayed', () {
+    test('Silêncio prolongado (> 6s) aciona reinício automático e zera displayed', () {
       final engine = TonalEngine();
       feedFrames(engine, kkMajor, 0, seconds: 3.0);
       final r1 = engine.evaluate(const Duration(milliseconds: 3000));
       expect(r1, isNotNull);
       expect(engine.displayed?.label, equals('C Maior'));
 
-      // 4.5s depois do último frame (3.0s + 4.5s = 7.5s)
-      final r2 = engine.evaluate(const Duration(milliseconds: 7500));
+      // 6.5s depois do último frame (3.0s + 6.5s = 9.5s)
+      final r2 = engine.evaluate(const Duration(milliseconds: 9500));
       expect(r2, isNull);
       expect(engine.displayed, isNull);
     });
@@ -127,6 +128,111 @@ void main() {
       expect(engine.displayed, isNull);
       expect(engine.lastReading, isNull);
       expect(engine.evaluate(const Duration(milliseconds: 4000)), isNull);
+    });
+  });
+
+  group('Dual memory (Plano 3)', () {
+    test('1. Refrão não derruba o tom da música', () {
+      final engine = TonalEngine();
+      feed(engine, versoSeq, 40);
+      final (reading, _) = feed(engine, refraoBSeq, 40, start: 40);
+      expect(reading, isNotNull);
+      expect(reading!.displayed?.label, equals('D Maior'));
+      expect(reading.passage?.label, equals('A Maior'));
+      expect(reading.showPassage, isTrue);
+      expect(engine.labelChanges, equals(0));
+    });
+
+    test('2. Sem a memória da música o letreiro cai', () {
+      final engine = TonalEngine(
+        songConfig: const SongMemoryConfig(enabled: false),
+      );
+      feed(engine, versoSeq, 40);
+      final (reading, _) = feed(engine, refraoBSeq, 40, start: 40);
+      expect(reading, isNotNull);
+      expect(reading!.displayed?.label, equals('A Maior'));
+    });
+
+    test('3. Modulação distante', () {
+      final engine = TonalEngine();
+      feed(engine, versoSeq, 40);
+      final (r48, ev1) = feed(engine, ebSeq, 8, start: 40);
+      expect(r48?.displayed?.label, equals('D Maior'));
+
+      final (r70, ev2) = feed(engine, ebSeq, 22, start: 48);
+      expect(r70?.displayed?.label, equals('D# Maior'));
+      final allEvents = [...ev1, ...ev2];
+      expect(allEvents.contains(MemoryEvent.farReset), isTrue);
+    });
+
+    test('4. Vamp longo vira o tom', () {
+      final engine = TonalEngine();
+      feed(engine, versoSeq, 40);
+      final (r100, ev1) = feed(engine, refraoBSeq, 60, start: 40);
+      expect(r100?.displayed?.label, equals('D Maior'));
+
+      final (r130, ev2) = feed(engine, refraoBSeq, 30, start: 100);
+      expect(r130?.displayed?.label, equals('A Maior'));
+      final allEvents = [...ev1, ...ev2];
+      expect(allEvents.contains(MemoryEvent.nearReset), isTrue);
+
+      // Com nearResetSeconds: 0, não vira
+      final engineNoNear = TonalEngine(
+        songConfig: const SongMemoryConfig(nearResetSeconds: 0),
+      );
+      feed(engineNoNear, versoSeq, 40);
+      final (rNoNear, _) = feed(engineNoNear, refraoBSeq, 90, start: 40);
+      expect(rNoNear?.displayed?.label, equals('D Maior'));
+    });
+
+    test('5. Silêncio de 7 s reinicia as duas memórias', () {
+      final engine = TonalEngine();
+      feed(engine, versoSeq, 30);
+      // 7s de silêncio (30s a 37s), depois 8s de ebSeq até 45s
+      final (r45, ev) = feed(engine, ebSeq, 8, start: 37);
+      expect(r45?.displayed?.label, equals('D# Maior'));
+      expect(ev.contains(MemoryEvent.silenceReset), isTrue);
+    });
+
+    test('6. Silêncio de 5 s reinicia só o trecho', () {
+      final engine = TonalEngine();
+      feed(engine, versoSeq, 30);
+      // 5s de silêncio (30s a 35s), depois 1s de versoSeq até 36s
+      final (r36, _) = feed(engine, versoSeq, 1, start: 35);
+      expect(r36, isNotNull);
+      expect(r36!.passage, isNull);
+      expect(r36.displayed?.label, equals('D Maior'));
+
+      // Mais 4s até 40s: os dois são Ré Maior
+      final (r40, _) = feed(engine, versoSeq, 4, start: 36);
+      expect(r40?.passage?.label, equals('D Maior'));
+      expect(r40?.displayed?.label, equals('D Maior'));
+    });
+
+    test('7. Início: com 2.5s de áudio já tem tom exibido', () {
+      final engine = TonalEngine();
+      final (r25, _) = feed(engine, versoSeq, 2.5);
+      expect(r25?.displayed?.label, equals('D Maior'));
+    });
+
+    test('8. Nova música em tom vizinho sem pausa', () {
+      final engine = TonalEngine();
+      feed(engine, versoSeq, 40);
+      final (r80, _) = feed(engine, gSeq, 40, start: 40);
+      expect(r80?.passage?.label, equals('G Maior'));
+      expect(r80?.displayed?.label, equals('D Maior'));
+
+      final (r120, _) = feed(engine, gSeq, 40, start: 80);
+      expect(r120?.displayed?.label, equals('G Maior'));
+    });
+
+    test('9. labelChanges métrica', () {
+      final engine = TonalEngine();
+      feed(engine, versoSeq, 40);
+      feed(engine, ebSeq, 30, start: 40); // até 70s
+      expect(engine.labelChanges, equals(1));
+      engine.reset();
+      expect(engine.labelChanges, equals(0));
     });
   });
 }

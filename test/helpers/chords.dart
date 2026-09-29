@@ -1,3 +1,5 @@
+import 'package:keyfinder/core/tonal_engine.dart';
+
 /// Tríade como perfil de 12 notas: fundamental 1,0, terça 0,8, quinta 0,8; normalizado para soma 1.
 List<double> tri(int root, int third, int fifth) {
   final c = List<double>.filled(12, 0);
@@ -38,3 +40,40 @@ final versoSeq = [(dMaj, 1.0), (gMaj, 0.5), (aMaj, 0.5), (dMaj, 1.0)];
 final refraoBSeq = [(fSharpMin, 1.0), (aMaj, 1.0)];
 final ebSeq = [(ebMaj, 1.0), (abMaj, 0.5), (bbMaj, 0.5), (ebMaj, 1.0)];
 final gSeq = [(gMaj, 1.0), (eMin, 0.5), (dMaj, 0.5), (gMaj, 1.0)];
+
+/// Alimenta o motor com o padrão em ciclos a cada 0.5 s.
+(TonalReading?, List<MemoryEvent>) feed(
+  TonalEngine engine,
+  List<(List<double>, double)> pattern,
+  double seconds, {
+  double start = 0,
+}) {
+  final cycleDuration = pattern.map((p) => p.$2).reduce((a, b) => a + b);
+  TonalReading? lastReading;
+  final events = <MemoryEvent>[];
+
+  final steps = (seconds / 0.5).round();
+  for (var i = 1; i <= steps; i++) {
+    final t = i * 0.5;
+    final pos = ((t - 0.25) % cycleDuration);
+    var acc = 0.0;
+    List<double> chord = pattern.first.$1;
+    for (final p in pattern) {
+      acc += p.$2;
+      if (pos < acc) {
+        chord = p.$1;
+        break;
+      }
+    }
+    final tDuration = Duration(milliseconds: ((start + t) * 1000).round());
+    engine.addFrame(chord, tDuration);
+    final r = engine.evaluate(tDuration);
+    if (r != null) {
+      lastReading = r;
+      if (r.event != MemoryEvent.none) {
+        events.add(r.event);
+      }
+    }
+  }
+  return (lastReading, events);
+}

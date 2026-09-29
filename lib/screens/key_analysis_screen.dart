@@ -127,8 +127,8 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     }
 
     _engine = TonalEngine(
-      accumulator: accumulator,
-      stabilizer: stabilizer,
+      passage: accumulator,
+      passageStabilizer: stabilizer,
       scorer: KeyScorer(profiles: profiles),
     );
 

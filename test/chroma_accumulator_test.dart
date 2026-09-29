@@ -55,5 +55,52 @@ void main() {
       expect(prof[0], closeTo(5.0, 1e-4));
       expect(acc.secondsInWindow, 0.0);
     });
+
+    test('10. seedFrom copia registros e mantém perfil e secondsInWindow idênticos', () {
+      final a = ChromaAccumulator(windowSeconds: 20);
+      final b = ChromaAccumulator(windowSeconds: 240);
+
+      a.add(List<double>.filled(12, 1.0), const Duration(seconds: 1));
+      a.add(List<double>.filled(12, 2.0), const Duration(seconds: 5));
+
+      b.seedFrom(a);
+
+      const now = Duration(seconds: 5);
+      expect(b.secondsInWindow, equals(a.secondsInWindow));
+      final profA = a.profile(now)!;
+      final profB = b.profile(now)!;
+      for (var i = 0; i < 12; i++) {
+        expect(profB[i], closeTo(profA[i], 1e-6));
+      }
+    });
+
+    test('11. binSeconds agrupa frames dentro do mesmo intervalo em um só registro', () {
+      final acc = ChromaAccumulator(windowSeconds: 20, binSeconds: 1.0);
+      final frame = List<double>.filled(12, 0.1);
+
+      // 10 frames dentro de 1 segundo (a cada 90ms)
+      for (var i = 0; i < 10; i++) {
+        acc.add(frame, Duration(milliseconds: i * 90));
+      }
+
+      // Deve ter apenas 1 registro somado
+      final prof = acc.profile(Duration.zero)!;
+      expect(prof[0], closeTo(1.0, 1e-4));
+    });
+
+    test('12. Silêncio de 6s não reinicia aos 5s e reinicia aos 6.5s', () {
+      final acc = ChromaAccumulator(silenceResetSeconds: 6);
+      final frame = List<double>.filled(12, 1.0);
+
+      acc.add(frame, Duration.zero);
+
+      // Gap de 5s: não deve reiniciar
+      final r1 = acc.add(frame, const Duration(seconds: 5));
+      expect(r1, isFalse);
+
+      // Gap de 6.5s: deve reiniciar
+      final r2 = acc.add(frame, const Duration(milliseconds: 11500));
+      expect(r2, isTrue);
+    });
   });
 }
