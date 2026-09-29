@@ -30,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _evidenceDrain = 0.5;
   bool _strictNotes = false;
   String _minorProfiles = 'same';
+  double _bassShare = 0.25;
 
   @override
   void initState() {
@@ -56,6 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
       _strictNotes = prefs.getBool('strict_notes') ?? false;
       _minorProfiles = prefs.getString('minor_profiles') ?? 'same';
+      _bassShare = prefs.getDouble('bass_share') ?? 0.25;
     });
   }
 
@@ -153,6 +155,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('minor_profiles', value);
     setState(() => _minorProfiles = value);
+  }
+
+  Future<void> _setBassShare(double value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('bass_share', value);
+    setState(() => _bassShare = value);
   }
 
   String get _normalizedProfileValue {
@@ -315,6 +323,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                   onChanged: (val) {
                     if (val != null) _setMinorProfiles(val);
+                  },
+                ),
+              ),
+
+              // Parcela do Baixo (bass_share) - Fase 7
+              ListTile(
+                leading: const Icon(Icons.speaker_outlined),
+                title: const Text('Parcela do Baixo (YIN)'),
+                subtitle: Text(
+                  _bassShare == 0.0
+                      ? 'Desativado (0%)'
+                      : '${(_bassShare * 100).toStringAsFixed(0)}% do peso do bloco',
+                ),
+                trailing: DropdownButton<double>(
+                  value: _bassShare,
+                  underline: const SizedBox(),
+                  items: const [
+                    DropdownMenuItem(value: 0.0, child: Text('0 (desativado)')),
+                    DropdownMenuItem(value: 0.15, child: Text('0,15 (15%)')),
+                    DropdownMenuItem(value: 0.25, child: Text('0,25 (25% padrão)')),
+                    DropdownMenuItem(value: 0.40, child: Text('0,40 (40%)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) _setBassShare(val);
                   },
                 ),
               ),

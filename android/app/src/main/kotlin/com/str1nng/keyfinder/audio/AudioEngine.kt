@@ -11,7 +11,8 @@ import io.flutter.plugin.common.EventChannel
 data class KeyConfig(
     val harmonics: Int = 4,
     val peakThreshold: Float = 0.01f,
-    val minTonalness: Float = 1.5f
+    val minTonalness: Float = 1.5f,
+    val bassEnabled: Boolean = true
 )
 
 class AudioEngine {
@@ -35,10 +36,13 @@ class AudioEngine {
                     peakThreshold = config.peakThreshold,
                     minTonalness = config.minTonalness
                 )
-                addAudioProcessor(ChromaProcessor(mapper) { chroma, spl ->
+                val bassTracker = if (config.bassEnabled) BassTracker() else null
+                addAudioProcessor(ChromaProcessor(mapper, bassTracker) { chroma, spl, bassPc, bassProb ->
                     val payload = mapOf(
                         "chroma" to chroma.map { it.toDouble() },
                         "spl" to spl,
+                        "bassPc" to bassPc,
+                        "bassProb" to bassProb,
                     )
                     main.post { chromaSink?.success(payload) }   // EventSink só pode ser chamado na thread principal
                 })

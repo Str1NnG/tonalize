@@ -443,6 +443,132 @@ void main() {
       final resAfterReset = feed(engine, versoSeq, 2.5, start: 70);
       expect(resAfterReset.events.contains(MemoryEvent.manualReset), isTrue);
     });
+
+    test('19. Tônica só no baixo', () {
+      final tecladoSemBaixo = mix([
+        (tri(6, 10, 5), 2), // vozes superiores de Mi♭m(add9) sem Mi♭
+        (gbMaj, 1),
+        (dbMaj, 1),
+        (tri(11, 3, 8), 1), // Lá♭m sem raiz
+        (tri(10, 1, 5), 1), // Si♭m
+      ]);
+
+      // Com bassShare = 0.25
+      final engineWithBass = TonalEngine(
+        scorer: KeyScorer(
+          profiles: ProfileSet.temperley,
+          minorProfiles: ProfileSet.aarden,
+        ),
+        songConfig: const SongMemoryConfig(bassShare: 0.25),
+      );
+
+      final engineWithoutBass = TonalEngine(
+        scorer: KeyScorer(
+          profiles: ProfileSet.temperley,
+          minorProfiles: ProfileSet.aarden,
+        ),
+        songConfig: const SongMemoryConfig(bassShare: 0.0),
+      );
+
+      final steps = (40.0 / 0.5).round();
+      for (var i = 1; i <= steps; i++) {
+        final t = i * 0.5;
+        final tDuration = Duration(milliseconds: (t * 1000).round());
+        engineWithBass.addFrame(
+          tecladoSemBaixo,
+          tDuration,
+          bassPc: 3,
+          bassProb: 0.95,
+        );
+        engineWithoutBass.addFrame(
+          tecladoSemBaixo,
+          tDuration,
+          bassPc: 3,
+          bassProb: 0.95,
+        );
+        engineWithBass.evaluate(tDuration);
+        engineWithoutBass.evaluate(tDuration);
+      }
+
+      // Com bassShare = 0.25, displayed é Mi♭ (Ré♯) menor aos 40 s
+      expect(engineWithBass.displayed?.tonic, equals(3));
+      expect(engineWithBass.displayed?.major, isFalse);
+
+      // Com bassShare = 0, displayed NÃO é Mi♭ menor (fica Sol♭/Fá♯ maior ou Ré♭/Dó♯ maior)
+      expect(
+        engineWithoutBass.displayed == null ||
+            engineWithoutBass.displayed!.tonic != 3 ||
+            engineWithoutBass.displayed!.major,
+        isTrue,
+      );
+      expect(engineWithoutBass.displayed?.tonic, equals(6));
+    });
+
+    test('20. Sem baixo detectado nada muda: bassPc: -1', () {
+      final engine1 = TonalEngine(
+        songConfig: const SongMemoryConfig(bassShare: 0.25),
+      );
+      final engine2 = TonalEngine(
+        songConfig: const SongMemoryConfig(bassShare: 0.0),
+      );
+
+      final c = tri(2, 6, 9);
+      for (var i = 1; i <= 20; i++) {
+        final t = Duration(milliseconds: i * 500);
+        engine1.addFrame(c, t, bassPc: -1, bassProb: 0.0);
+        engine2.addFrame(c, t, bassPc: -1, bassProb: 0.0);
+      }
+      final r1 = engine1.evaluate(const Duration(seconds: 10));
+      final r2 = engine2.evaluate(const Duration(seconds: 10));
+      expect(r1?.profile, equals(r2?.profile));
+      expect(r1?.displayed?.label, equals(r2?.displayed?.label));
+    });
+
+    test('21. Regressão do verso com baixo nas raízes', () {
+      final cycle = [
+        (dMaj, 2, 0.95),
+        (dMaj, 2, 0.95),
+        (gMaj, 7, 0.95),
+        (aMaj, 9, 0.95),
+        (dMaj, 2, 0.95),
+        (dMaj, 2, 0.95),
+      ];
+
+      final engineBass = TonalEngine(
+        songConfig: const SongMemoryConfig(bassShare: 0.25),
+      );
+      final engineNoBass = TonalEngine(
+        songConfig: const SongMemoryConfig(bassShare: 0.0),
+      );
+
+      final steps = (30.0 / 0.5).round();
+      for (var i = 1; i <= steps; i++) {
+        final t = i * 0.5;
+        final item = cycle[(i - 1) % cycle.length];
+        final tDuration = Duration(milliseconds: (t * 1000).round());
+        engineBass.addFrame(
+          item.$1,
+          tDuration,
+          bassPc: item.$2,
+          bassProb: item.$3,
+        );
+        engineNoBass.addFrame(
+          item.$1,
+          tDuration,
+          bassPc: item.$2,
+          bassProb: item.$3,
+        );
+        engineBass.evaluate(tDuration);
+        engineNoBass.evaluate(tDuration);
+      }
+
+      expect(engineBass.displayed?.label, equals('D Maior'));
+      expect(engineNoBass.displayed?.label, equals('D Maior'));
+      expect(
+        engineBass.lastReading!.confidence,
+        greaterThanOrEqualTo(engineNoBass.lastReading!.confidence),
+      );
+    });
   });
 }
 

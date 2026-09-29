@@ -58,7 +58,7 @@ class DatabaseHelper {
     final path = join(documentsDirectory.path, 'keyfinder.db');
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -91,7 +91,8 @@ class DatabaseHelper {
         rBest REAL NOT NULL,
         rDisplayed REAL NOT NULL,
         challenge TEXT NOT NULL,
-        config TEXT NOT NULL
+        config TEXT NOT NULL,
+        bassPc INTEGER
       )
     ''');
   }
@@ -131,6 +132,9 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE readings ADD COLUMN evidenceSeconds REAL;');
       await db.execute('ALTER TABLE readings ADD COLUMN event TEXT;');
       await db.execute('ALTER TABLE field_log ADD COLUMN passage TEXT;');
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE readings ADD COLUMN bassPc INTEGER;');
     }
   }
 
@@ -177,6 +181,7 @@ class DatabaseHelper {
     required double rDisplayed,
     required String challenge,
     required String config,
+    int? bassPc,
   }) async {
     final db = await database;
     return await db.insert('readings', {
@@ -192,6 +197,7 @@ class DatabaseHelper {
       'rDisplayed': rDisplayed,
       'challenge': challenge,
       'config': config,
+      'bassPc': bassPc ?? -1,
     });
   }
 
@@ -217,10 +223,10 @@ class DatabaseHelper {
     );
 
     final buffer = StringBuffer();
-    buffer.writeln('sessionId,ts,displayed,passage,songSeconds,evidenceSeconds,event,best,rBest,rDisplayed,challenge,config');
+    buffer.writeln('sessionId,ts,displayed,passage,songSeconds,evidenceSeconds,event,best,rBest,rDisplayed,challenge,config,bassPc');
     for (final r in rows) {
       buffer.writeln(
-        '${r['sessionId']},${r['ts']},${r['displayed']},${r['passage'] ?? ''},${r['songSeconds'] ?? 0.0},${r['evidenceSeconds'] ?? 0.0},${r['event'] ?? ''},${r['best']},${r['rBest']},${r['rDisplayed']},${r['challenge']},${r['config']}',
+        '${r['sessionId']},${r['ts']},${r['displayed']},${r['passage'] ?? ''},${r['songSeconds'] ?? 0.0},${r['evidenceSeconds'] ?? 0.0},${r['event'] ?? ''},${r['best']},${r['rBest']},${r['rDisplayed']},${r['challenge']},${r['config']},${r['bassPc'] ?? -1}',
       );
     }
     return buffer.toString();

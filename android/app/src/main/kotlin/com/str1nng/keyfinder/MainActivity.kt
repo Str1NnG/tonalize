@@ -22,7 +22,8 @@ class MainActivity : FlutterActivity() {
                     val harmonics = call.argument<Int>("harmonics") ?: 4
                     val peakThreshold = (call.argument<Double>("peakThreshold") ?: 0.01).toFloat()
                     val minTonalness = (call.argument<Double>("minTonalness") ?: 1.5).toFloat()
-                    val config = KeyConfig(harmonics, peakThreshold, minTonalness)
+                    val bassEnabled = call.argument<Boolean>("bassEnabled") ?: true
+                    val config = KeyConfig(harmonics, peakThreshold, minTonalness, bassEnabled)
                     try {
                         engine.start(mode, sensitivity, config)
                         result.success(null)

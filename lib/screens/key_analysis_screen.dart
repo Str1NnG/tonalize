@@ -97,6 +97,8 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     final evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
     final strictNotes = prefs.getBool('strict_notes') ?? false;
     final minorProfileName = prefs.getString('minor_profiles') ?? 'same';
+    final bassShare = prefs.getDouble('bass_share') ?? 0.25;
+    final bassEnabled = bassShare > 0;
 
     // Parse profile
     ProfileSet profiles = ProfileSet.temperley;
@@ -128,7 +130,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         ? 'song$songHalfLife;far$songFar;near$songNear;tol$evidenceTol;floor$evidenceFloor;drain$evidenceDrain'
         : 'nosong';
     _configString =
-        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code}$minorCode;$songConfigStr${strictNotes ? ";strict" : ""}';
+        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code}$minorCode;$songConfigStr${strictNotes ? ";strict" : ""};bass$bassShare';
 
     final ChromaAccumulator accumulator;
     final KeyStabilizer stabilizer;
@@ -172,6 +174,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       evidenceTolerance: evidenceTol,
       evidenceFloor: evidenceFloor,
       evidenceDrain: evidenceDrain,
+      bassShare: bassShare,
     );
 
     _engine = TonalEngine(
@@ -186,12 +189,18 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       harmonics: useHarmonics ? 4 : 1,
       peakThreshold: useHarmonics ? 0.01 : 0.0,
       minTonalness: useHarmonics ? 1.5 : 0.0,
+      bassEnabled: bassEnabled,
     );
 
     _chromaSubscription?.cancel();
     _chromaSubscription = _audioService.chromaStream().listen(
       (frame) {
-        _engine.addFrame(frame.chroma, _stopwatch.elapsed);
+        _engine.addFrame(
+          frame.chroma,
+          _stopwatch.elapsed,
+          bassPc: frame.bassPc,
+          bassProb: frame.bassProb,
+        );
       },
       onError: (err) {
         debugPrint("Erro no stream de áudio: $err");
@@ -242,6 +251,7 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
           rDisplayed: rDisp,
           challenge: challengeStr,
           config: _configString,
+          bassPc: reading.bassPc,
         );
       }
 

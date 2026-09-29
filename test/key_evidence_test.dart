@@ -58,9 +58,27 @@ void main() {
       expect(newNoteEvidence(fsMinor, aMajor, List.filled(12, 1.0)), isFalse);
     });
 
+    test('14d. Cor dórica não é tom novo (3.5)', () {
+      const ebMinor = KeyCandidate(3, false, 0.0);
+      const dbMajor = KeyCandidate(1, true, 0.0);
+      const abMajor = KeyCandidate(8, true, 0.0);
+
+      // Ré♭ maior não traz nota nenhuma fora do menor de 9 notas
+      expect(newNoteEvidence(ebMinor, dbMajor, List.filled(12, 1.0)), isFalse);
+
+      // Lá♭ maior traz apenas Sol natural (7): com Sol = 0 é false, com Sol = 0.10 é true
+      final pSemSol = List<double>.filled(12, 0.01);
+      pSemSol[7] = 0.0;
+      expect(newNoteEvidence(ebMinor, abMajor, pSemSol), isFalse);
+
+      final pComSol = List<double>.filled(12, 0.01);
+      pComSol[7] = 0.10;
+      expect(newNoteEvidence(ebMinor, abMajor, pComSol), isTrue);
+    });
+
     test('15. scaleOf(Ré maior) e scaleOf(Si menor)', () {
       expect(scaleOf(dMajor), equals({2, 4, 6, 7, 9, 11, 1}));
-      expect(scaleOf(bMinor), equals({11, 1, 2, 4, 6, 7, 9, 10}));
+      expect(scaleOf(bMinor), equals({11, 1, 2, 4, 6, 7, 8, 9, 10}));
     });
   });
 }

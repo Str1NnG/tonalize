@@ -1,9 +1,12 @@
 import 'key_profiles.dart';
 
-/// Escala de cada tom como conjunto de classes de altura. Menor = natural + sensível (7ª maior),
-/// porque a dominante com sensível é a forma mais comum de confirmar um tom menor.
+/// Escala de cada tom como conjunto de classes de altura, para a EVIDÊNCIA (a pontuação usa os perfis).
+/// Menor = natural + 6ª elevada + 7ª elevada (9 notas): a sensível, porque a dominante com sensível é a forma
+/// mais comum de confirmar um tom menor; e a 6ª elevada porque o IV grau maior (Lá♭ maior em Mi♭ menor, com
+/// Dó natural) é cor corrente do gospel e da música popular em tom menor — sem ela, esse Dó natural contaria
+/// como "nota nova" de Ré♭ maior e promoveria o VII grau como tom novo (3.5).
 const _major = {0, 2, 4, 5, 7, 9, 11};
-const _minor = {0, 2, 3, 5, 7, 8, 10, 11};
+const _minor = {0, 2, 3, 5, 7, 8, 9, 10, 11};
 Set<int> scaleOf(KeyCandidate k) =>
     {for (final d in (k.major ? _major : _minor)) (k.tonic + d) % 12};
 

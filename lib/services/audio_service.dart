@@ -3,7 +3,14 @@ import 'package:flutter/services.dart';
 class ChromaFrame {
   final List<double> chroma;
   final double spl;
-  const ChromaFrame(this.chroma, this.spl);
+  final int bassPc;
+  final double bassProb;
+  const ChromaFrame(
+    this.chroma,
+    this.spl, {
+    this.bassPc = -1,
+    this.bassProb = 0.0,
+  });
 }
 
 class PitchEvent {
@@ -26,6 +33,8 @@ class AudioService {
       return ChromaFrame(
         (m['chroma'] as List).map((v) => (v as num).toDouble()).toList(),
         (m['spl'] as num).toDouble(),
+        bassPc: (m['bassPc'] as num?)?.toInt() ?? -1,
+        bassProb: (m['bassProb'] as num?)?.toDouble() ?? 0.0,
       );
     });
   }
@@ -45,6 +54,7 @@ class AudioService {
     int? harmonics,
     double? peakThreshold,
     double? minTonalness,
+    bool? bassEnabled,
   }) =>
       _control.invokeMethod(
         'start',
@@ -54,6 +64,7 @@ class AudioService {
           if (harmonics != null) 'harmonics': harmonics,
           if (peakThreshold != null) 'peakThreshold': peakThreshold,
           if (minTonalness != null) 'minTonalness': minTonalness,
+          if (bassEnabled != null) 'bassEnabled': bassEnabled,
         },
       );
 

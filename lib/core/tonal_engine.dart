@@ -35,6 +35,7 @@ class SongMemoryConfig {
     this.baseHoldSeconds = 20, // regra própria da memória da música: lenta de propósito
     this.neighborHoldSeconds = 30,
     this.showPassageAfterSeconds = 4, // linha "agora" aparece após 4 s de discordância
+    this.bassShare = 0.25,
   });
 
   final bool enabled;
@@ -51,6 +52,7 @@ class SongMemoryConfig {
   final double baseHoldSeconds;
   final double neighborHoldSeconds;
   final double showPassageAfterSeconds;
+  final double bassShare;
 }
 
 class TonalReading {
@@ -68,6 +70,7 @@ class TonalReading {
   final MemoryEvent event; // o que aconteceu nesta avaliação
   final double songSeconds; // segundos de áudio na memória da música
   final double evidenceSeconds; // segundos acumulados de evidência de tom novo
+  final int bassPc; // nota do baixo detectada (-1 se nenhuma)
 
   const TonalReading({
     this.displayed,
@@ -84,6 +87,7 @@ class TonalReading {
     this.event = MemoryEvent.none,
     this.songSeconds = 0.0,
     this.evidenceSeconds = 0.0,
+    this.bassPc = -1,
   });
 }
 
@@ -130,6 +134,7 @@ class TonalEngine {
   MemoryEvent _pending = MemoryEvent.none;
   KeyCandidate? _lastLabel;
   int labelChanges = 0; // trocas do letreiro principal, qualquer que seja o mecanismo
+  int _lastBassPc = -1;
 
   TonalReading? _lastReading;
   TonalReading? get lastReading => _lastReading;
@@ -137,10 +142,23 @@ class TonalEngine {
       songConfig.enabled ? songStabilizer.displayed : passageStabilizer.displayed;
   bool get isSongMature => _songMature;
 
-  void addFrame(List<double> chroma, Duration at) {
+  void addFrame(
+    List<double> chroma,
+    Duration at, {
+    int bassPc = -1,
+    double bassProb = 0.0,
+  }) {
     if (chroma.length != 12) return;
-    if (passage.add(chroma, at)) passageStabilizer.reset();
-    if (song.add(chroma, at)) {
+    _lastBassPc = bassPc;
+    final share = bassPc >= 0 ? songConfig.bassShare * bassProb : 0.0;
+    final merged = share == 0
+        ? chroma
+        : [
+            for (var i = 0; i < 12; i++)
+              (1.0 - share) * chroma[i] + (i == bassPc ? share : 0.0),
+          ];
+    if (passage.add(merged, at)) passageStabilizer.reset();
+    if (song.add(merged, at)) {
       _resetSongState();
       _pending = MemoryEvent.silenceReset;
     }
@@ -300,6 +318,7 @@ class TonalEngine {
     _passageDiffersSince = null;
     _evidenceSeconds = 0;
     _evidenceNotes = null;
+    _lastBassPc = -1;
   }
 
   double _secs(Duration now, Duration since) =>
@@ -349,6 +368,7 @@ class TonalEngine {
       event: event,
       songSeconds: song.secondsInWindow,
       evidenceSeconds: evidenceSeconds,
+      bassPc: _lastBassPc,
     );
   }
 
@@ -362,6 +382,7 @@ class TonalEngine {
     labelChanges = 0;
     _pending = MemoryEvent.manualReset;
     _lastReading = null;
+    _lastBassPc = -1;
   }
 
   int get switches => labelChanges; // mantém o nome usado pela tela
