@@ -16,7 +16,7 @@ const List<String> noteNames = [
   'B'
 ];
 
-/// Perfis de Krumhansl-Kessler (Krumhansl, 1990), em Dó. Índice 0 = tônica.
+/// Krumhansl-Kessler (1982/1990), em Dó. Índice 0 = tônica.
 const List<double> kkMajor = [
   6.35,
   2.23,
@@ -76,7 +76,99 @@ const List<double> temperleyMinor = [
   4.0
 ];
 
-enum ProfileSet { krumhansl, temperley }
+/// Temperley-Kostka-Payne (Temperley, 2007), derivados de um corpus de exemplos de harmonia.
+const List<double> temperleyKPMajor = [
+  0.748,
+  0.060,
+  0.488,
+  0.082,
+  0.670,
+  0.460,
+  0.096,
+  0.715,
+  0.104,
+  0.366,
+  0.057,
+  0.400
+];
+const List<double> temperleyKPMinor = [
+  0.712,
+  0.084,
+  0.474,
+  0.618,
+  0.049,
+  0.460,
+  0.105,
+  0.747,
+  0.404,
+  0.067,
+  0.133,
+  0.330
+];
+
+/// Aarden-Essen (Aarden, 2003), derivados da coleção de canções folclóricas de Essen.
+/// Diferença enorme entre notas da escala (>= 4.95) e de fora (<= 0.29): quase um teste de pertinência à escala.
+const List<double> aardenMajor = [
+  17.7661,
+  0.145624,
+  14.9265,
+  0.160186,
+  19.8049,
+  11.3587,
+  0.291248,
+  22.062,
+  0.145624,
+  8.15494,
+  0.232998,
+  4.95122
+];
+const List<double> aardenMinor = [
+  18.2648,
+  0.737619,
+  14.0499,
+  16.8599,
+  0.702494,
+  14.4362,
+  0.702494,
+  18.6161,
+  4.56621,
+  1.93186,
+  7.37619,
+  1.75623
+];
+
+enum ProfileSet { krumhansl, temperley, temperleyKP, aarden }
+
+extension ProfileSetData on ProfileSet {
+  List<double> get major => switch (this) {
+        ProfileSet.krumhansl => kkMajor,
+        ProfileSet.temperley => temperleyMajor,
+        ProfileSet.temperleyKP => temperleyKPMajor,
+        ProfileSet.aarden => aardenMajor,
+      };
+
+  List<double> get minor => switch (this) {
+        ProfileSet.krumhansl => kkMinor,
+        ProfileSet.temperley => temperleyMinor,
+        ProfileSet.temperleyKP => temperleyKPMinor,
+        ProfileSet.aarden => aardenMinor,
+      };
+
+  /// Código curto para a coluna `config` das leituras.
+  String get code => switch (this) {
+        ProfileSet.krumhansl => 'kk',
+        ProfileSet.temperley => 'tmp',
+        ProfileSet.temperleyKP => 'tkp',
+        ProfileSet.aarden => 'aar',
+      };
+
+  String get label => switch (this) {
+        ProfileSet.krumhansl => 'Krumhansl-Kessler',
+        ProfileSet.temperley => 'Temperley (1999)',
+        ProfileSet.temperleyKP => 'Temperley-Kostka-Payne',
+        ProfileSet.aarden => 'Aarden-Essen',
+      };
+}
 
 /// Perfil da tonalidade cuja tônica é [tonic]: rotação circular. profile[tonic] recebe base[0].
 List<double> rotated(List<double> base, int tonic) =>
