@@ -19,7 +19,7 @@ if (keyPropertiesFile.exists()) {
 
 android {
     namespace = "com.str1nng.keyfinder" // Usando seu namespace customizado
-    compileSdk = 34 // Usando a versão mais recente do SDK que já baixamos
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -44,7 +44,7 @@ android {
 
     defaultConfig {
         applicationId = "com.str1nng.keyfinder"
-        minSdk = 21 // minSdk do Flutter
+        minSdk = flutter.minSdkVersion // minSdk do Flutter
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
