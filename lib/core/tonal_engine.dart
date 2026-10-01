@@ -27,7 +27,7 @@ class SongMemoryConfig {
     this.silenceResetSeconds = 6, // pausa entre músicas
     this.youngSeconds = 30, // memória jovem: segue o trecho até ter 30 s E concordar com ele
     this.youngMaxSeconds = 60, // ...ou, no máximo, até ter 60 s de áudio (teto: nunca copia o trecho para sempre)
-    this.farResetSeconds = 12, // trecho num tom distante por 12 s -> a música mudou: reinicia a partir do trecho
+    this.farResetSeconds = 20, // trecho num tom distante por 20 s -> a música mudou: reinicia a partir do trecho
     this.nearResetSeconds = 45, // trecho num tom vizinho COM notas novas por 45 s (acumulados) -> idem (0 = nunca)
     this.evidenceTolerance = 0.8, // ver newNoteEvidence
     this.evidenceFloor = 0.25,
@@ -128,7 +128,9 @@ class TonalEngine {
   late final KeyStabilizer songStabilizer;
 
   bool _songMature = false; // false: a memória da música ainda segue o trecho
-  Duration? _farSince, _passageDiffersSince, _lastEvalAt;
+  KeyCandidate? _held; // tom confirmado a ser segurado na fase jovem pós-confirmação
+  KeyCandidate? _lastChallenger; // desafiante anterior para checar continuidade
+  Duration? _farSince, _passageDiffersSince, _lastEvalAt, _reseededAt;
   Set<int>? _evidenceNotes; // notas novas a que o contador de evidência está ligado
   double _evidenceSeconds = 0; // tempo acumulado com o trecho num vizinho E notas novas presentes
   MemoryEvent _pending = MemoryEvent.none;
@@ -225,13 +227,32 @@ class TonalEngine {
     final sScores = scorer.score(sProfile);
     final p = passageStabilizer.displayed;
     if (!_songMature) {
-      songStabilizer.displayed = p; // memória jovem segue o trecho
-      songStabilizer.challenge = null;
-      if ((song.secondsInWindow >= songConfig.youngSeconds &&
-              p != null &&
-              sScores.first.sameKey(p)) ||
-          song.secondsInWindow >= songConfig.youngMaxSeconds) {
-        _songMature = true; // ...até concordar com ele, ou até o teto de 60 s
+      final youngTime = _reseededAt != null
+          ? _secs(now, _reseededAt!)
+          : song.secondsInWindow;
+      if (_held != null) {
+        songStabilizer.displayed = _held; // segura o tom confirmado
+        songStabilizer.challenge = null;
+        if (youngTime >= songConfig.youngSeconds &&
+            sScores.first.sameKey(_held)) {
+          _songMature = true;
+          _held = null;
+          _reseededAt = null;
+        } else if (youngTime >= songConfig.youngMaxSeconds) {
+          _songMature = true;
+          songStabilizer.displayed = sScores.first;
+          _held = null;
+          _reseededAt = null;
+        }
+      } else {
+        songStabilizer.displayed = p; // memória jovem inicial segue o trecho
+        songStabilizer.challenge = null;
+        if ((youngTime >= songConfig.youngSeconds &&
+                p != null &&
+                sScores.first.sameKey(p)) ||
+            youngTime >= songConfig.youngMaxSeconds) {
+          _songMature = true; // ...até concordar com ele, ou até o teto de 60 s
+        }
       }
     } else {
       songStabilizer.update(
@@ -248,10 +269,14 @@ class TonalEngine {
     if (p != null && s != null && !p.sameKey(s)) {
       _passageDiffersSince ??= now;
       final notes = newNotesOf(s, p);
-      if (_evidenceNotes == null ||
-          _evidenceNotes!.intersection(notes).isEmpty) {
-        _evidenceSeconds = 0;
+      final diatonic = diatonicNewNotesOf(s, p);
+      if (_lastChallenger == null || !_lastChallenger!.sameKey(p)) {
+        if (_evidenceNotes == null ||
+            _evidenceNotes!.intersection(diatonic).isEmpty) {
+          _evidenceSeconds = 0;
+        }
         _evidenceNotes = notes;
+        _lastChallenger = p;
       }
       if (KeyStabilizer.isNeighbor(s, p)) {
         _farSince = null;
@@ -271,15 +296,16 @@ class TonalEngine {
         reportedEvidence = _evidenceSeconds;
         if (songConfig.nearResetSeconds > 0 &&
             _evidenceSeconds >= songConfig.nearResetSeconds) {
-          _reseed();
+          _reseed(p, now);
           event = MemoryEvent.neighborKeyConfirmed;
         }
       } else {
         _evidenceSeconds = 0;
         _evidenceNotes = null;
+        _lastChallenger = null;
         _farSince ??= now;
         if (_secs(now, _farSince!) >= songConfig.farResetSeconds) {
-          _reseed();
+          _reseed(p, now);
           event = MemoryEvent.farKeyConfirmed;
         }
       }
@@ -288,6 +314,7 @@ class TonalEngine {
       _passageDiffersSince = null;
       _evidenceSeconds = 0;
       _evidenceNotes = null;
+      _lastChallenger = null;
     }
     final showPassage = _passageDiffersSince != null &&
         _secs(now, _passageDiffersSince!) >= songConfig.showPassageAfterSeconds;
@@ -307,24 +334,30 @@ class TonalEngine {
     return reading;
   }
 
-  void _reseed() {
+  void _reseed(KeyCandidate confirmedKey, Duration now) {
     song.seedFrom(passage);
-    songStabilizer.displayed = passageStabilizer.displayed;
+    _held = confirmedKey;
+    _reseededAt = now;
+    songStabilizer.displayed = confirmedKey;
     songStabilizer.challenge = null;
     _songMature = false; // volta a seguir o trecho até concordar
     _farSince = null;
     _passageDiffersSince = null;
     _evidenceSeconds = 0;
     _evidenceNotes = null;
+    _lastChallenger = null;
   }
 
   void _resetSongState() {
     songStabilizer.reset();
     _songMature = false;
+    _held = null;
+    _reseededAt = null;
     _farSince = null;
     _passageDiffersSince = null;
     _evidenceSeconds = 0;
     _evidenceNotes = null;
+    _lastChallenger = null;
     _lastBassPc = -1;
   }
 

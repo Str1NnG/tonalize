@@ -674,11 +674,214 @@ void main() {
       expect(r100.songSeconds, inInclusiveRange(99.0, 101.0));
     });
   });
+
+  group('Fase 3: Continuidade diatônica, segurar tom confirmado e far 20s', () {
+    test('4f. Continuidade diatônica: evidência não passa de Mi♭ para Fá m a partir de Lá♭', () {
+      final forced = _ForcedKeyStabilizer(const KeyCandidate(8, true, 0.85)); // Lá♭ maior
+      final engine = TonalEngine(passageStabilizer: forced);
+      // Lá♭ maior por 60s
+      final abChroma = tri(8, 0, 3);
+      for (var i = 1; i <= 120; i++) {
+        final t = Duration(milliseconds: i * 500);
+        engine.addFrame(abChroma, t);
+        engine.evaluate(t);
+      }
+      expect(engine.displayed?.tonic, equals(8)); // A♭ maior
+
+      // Trecho em Mi♭ maior com Ré natural forte (nota 2) por 35s
+      engine.passage.clear();
+      forced.forced = const KeyCandidate(3, true, 0.85); // Mi♭ maior
+      final ebChromaWithD = List<double>.from(tri(3, 7, 10));
+      ebChromaWithD[2] = 0.25; // Ré natural (nota nova diatônica de Mi♭)
+      final sumEb = ebChromaWithD.reduce((a, b) => a + b);
+      final normEb = [for (final v in ebChromaWithD) v / sumEb];
+
+      for (var i = 1; i <= 70; i++) {
+        final t = Duration(milliseconds: 60000 + i * 500);
+        engine.passage.add(normEb, t);
+        engine.song.add(abChroma, t);
+        final r = engine.evaluate(t);
+        expect(r?.evidenceSeconds, closeTo(i * 0.5, 0.5));
+      }
+      expect(engine.lastReading?.evidenceSeconds, closeTo(35.0, 1.0));
+
+      // Trecho passa para Fá menor (nota 5). Ré natural continua no perfil, mas Ré♭ (1) está presente na harmonia
+      engine.passage.clear();
+      forced.forced = const KeyCandidate(5, false, 0.85); // Fá m
+      final fmChromaWithD = List<double>.from(tri(5, 8, 0));
+      fmChromaWithD[1] = 0.35; // Ré♭ (6ª diatônica de Fá m / 4ª de Lá♭)
+      fmChromaWithD[2] = 0.25; // Ré natural (resquício de Mi♭)
+      final sumFm = fmChromaWithD.reduce((a, b) => a + b);
+      final normFm = [for (final v in fmChromaWithD) v / sumFm];
+
+      // Primeiro frame em Fá m deve zerar a evidência porque diatonicNewNotesOf(Ab, Fm) é vazio
+      const tSwitch = Duration(milliseconds: 95500);
+      engine.passage.add(normFm, tSwitch);
+      engine.song.add(abChroma, tSwitch);
+      final rSwitch = engine.evaluate(tSwitch);
+      expect(rSwitch?.evidenceSeconds, equals(0.0));
+
+      // Continua por mais 45s (total 90 passos) em Fá m
+      var confirmed = false;
+      for (var i = 1; i <= 90; i++) {
+        final t = Duration(milliseconds: 95500 + i * 500);
+        engine.passage.add(normFm, t);
+        engine.song.add(abChroma, t);
+        final r = engine.evaluate(t);
+        if (r?.event == MemoryEvent.neighborKeyConfirmed) confirmed = true;
+      }
+      expect(confirmed, isFalse);
+      expect(engine.displayed?.tonic, equals(8)); // permanece Lá♭ Maior
+    });
+
+    test('9c. Segura tom confirmado na fase jovem: no instante seguinte trecho muda mas exibido segura', () {
+      final forced = _ForcedKeyStabilizer(const KeyCandidate(0, true, 0.85));
+      final engine = TonalEngine(passageStabilizer: forced);
+      final cChroma = tri(0, 4, 7);
+      final gChroma = tri(7, 11, 2);
+
+      // Dó maior por 90s
+      for (var i = 1; i <= 180; i++) {
+        final t = Duration(milliseconds: i * 500);
+        engine.addFrame(cChroma, t);
+        engine.evaluate(t);
+      }
+      expect(engine.displayed?.label, equals('C Maior'));
+
+      // Trecho em Sol maior com Fá♯ >= Fá por 45s -> neighborKeyConfirmed(Sol)
+      engine.passage.clear();
+      forced.forced = const KeyCandidate(7, true, 0.85);
+      final gWithFs = List<double>.from(gChroma);
+      gWithFs[6] = 0.3; // Fá♯
+      final sumG = gWithFs.reduce((a, b) => a + b);
+      final normG = [for (final v in gWithFs) v / sumG];
+
+      MemoryEvent? confirmEvent;
+      for (var i = 1; i <= 90; i++) {
+        final t = Duration(milliseconds: 90000 + i * 500);
+        engine.passage.add(normG, t);
+        engine.song.add(cChroma, t);
+        final r = engine.evaluate(t);
+        if (r?.event != MemoryEvent.none) confirmEvent = r?.event;
+      }
+      expect(confirmEvent, equals(MemoryEvent.neighborKeyConfirmed));
+      expect(engine.displayed?.label, equals('G Maior'));
+
+      // No instante seguinte (135.5s), trecho lê Mi menor
+      forced.forced = const KeyCandidate(4, false, 0.85);
+      final rNext = engine.evaluate(const Duration(milliseconds: 135500));
+      // Letreiro continua Sol maior (segurado pelo _held)
+      expect(engine.displayed?.label, equals('G Maior'));
+      expect(rNext?.displayed?.label, equals('G Maior'));
+
+      // Aos 30s de concordância da música com Sol maior (135.5s a 166s), amadurece
+      forced.forced = const KeyCandidate(7, true, 0.85);
+      for (var i = 1; i <= 61; i++) {
+        final t = Duration(milliseconds: 135500 + i * 500);
+        engine.addFrame(gChroma, t);
+        engine.evaluate(t);
+      }
+      expect(engine.isSongMature, isTrue);
+      expect(engine.displayed?.label, equals('G Maior'));
+    });
+
+    test('9d. Segura tom confirmado até youngMaxSeconds (60s), quando passa a valer o melhor da música', () {
+      final forced = _ForcedKeyStabilizer(const KeyCandidate(0, true, 0.85));
+      final engine = TonalEngine(passageStabilizer: forced);
+      final cChroma = tri(0, 4, 7);
+      final gChroma = tri(7, 11, 2);
+      final emChromaRaw = List<double>.from(tri(4, 7, 11));
+      emChromaRaw[4] = 1.8; // fundamental Mi reforçada para definir Mi menor claramente
+      final sumEm = emChromaRaw.reduce((a, b) => a + b);
+      final emChroma = [for (final v in emChromaRaw) v / sumEm];
+
+      // Dó maior por 90s
+      for (var i = 1; i <= 180; i++) {
+        final t = Duration(milliseconds: i * 500);
+        engine.addFrame(cChroma, t);
+        engine.evaluate(t);
+      }
+
+      // Trecho em Sol maior por 45s -> neighborKeyConfirmed(Sol)
+      engine.passage.clear();
+      forced.forced = const KeyCandidate(7, true, 0.85);
+      final gWithFs = List<double>.from(gChroma);
+      gWithFs[6] = 0.3;
+      final sumG = gWithFs.reduce((a, b) => a + b);
+      final normG = [for (final v in gWithFs) v / sumG];
+
+      for (var i = 1; i <= 90; i++) {
+        final t = Duration(milliseconds: 90000 + i * 500);
+        engine.passage.add(normG, t);
+        engine.song.add(cChroma, t);
+        engine.evaluate(t);
+      }
+      expect(engine.displayed?.label, equals('G Maior'));
+
+      // Após confirmação, música segue em Mi menor (Em) por 60s
+      forced.forced = const KeyCandidate(4, false, 0.85);
+      // Durante 0 a 59s, letreiro continua Sol maior (_held)
+      for (var i = 1; i <= 118; i++) {
+        final t = Duration(milliseconds: 135000 + i * 500);
+        engine.addFrame(emChroma, t);
+        engine.evaluate(t);
+        expect(engine.displayed?.label, equals('G Maior'));
+      }
+
+      // Aos 60s (teto youngMaxSeconds), passa a valer o melhor da música (E Menor)
+      const t60 = Duration(milliseconds: 135000 + 120 * 500);
+      engine.addFrame(emChroma, t60);
+      final r60 = engine.evaluate(t60);
+      expect(engine.isSongMature, isTrue);
+      expect(r60?.displayed?.label, equals('E Menor'));
+      expect(engine.displayed?.label, equals('E Menor'));
+    });
+
+    test('11b. farResetSeconds = 20s: 15s não confirma, 25s confirma', () {
+      final forced = _ForcedKeyStabilizer(const KeyCandidate(5, true, 0.85)); // Fá maior
+      final engine = TonalEngine(passageStabilizer: forced);
+      final fChroma = tri(5, 9, 0); // Fá maior
+      final aChroma = tri(9, 1, 4); // Lá maior - tom distante de Fá (distância = 4)
+
+      // Fá maior por 60s
+      for (var i = 1; i <= 120; i++) {
+        final t = Duration(milliseconds: i * 500);
+        engine.addFrame(fChroma, t);
+        engine.evaluate(t);
+      }
+      expect(engine.displayed?.label, equals('F Maior'));
+
+      // Trecho em Lá maior por 15s
+      forced.forced = const KeyCandidate(9, true, 0.85);
+      var farConfirmedAt15 = false;
+      for (var i = 1; i <= 30; i++) {
+        final t = Duration(milliseconds: 60000 + i * 500);
+        engine.passage.add(aChroma, t);
+        engine.song.add(fChroma, t);
+        final r = engine.evaluate(t);
+        if (r?.event == MemoryEvent.farKeyConfirmed) farConfirmedAt15 = true;
+      }
+      expect(farConfirmedAt15, isFalse);
+      expect(engine.displayed?.label, equals('F Maior'));
+
+      // Continua mais 10s (total 25s de Lá maior >= 20s) -> farKeyConfirmed!
+      var farConfirmedAt25 = false;
+      for (var i = 31; i <= 50; i++) {
+        final t = Duration(milliseconds: 60000 + i * 500);
+        engine.passage.add(aChroma, t);
+        engine.song.add(fChroma, t);
+        final r = engine.evaluate(t);
+        if (r?.event == MemoryEvent.farKeyConfirmed) farConfirmedAt25 = true;
+      }
+      expect(farConfirmedAt25, isTrue);
+      expect(engine.displayed?.label, equals('A Maior'));
+    });
+  });
 }
 
 class _ForcedKeyStabilizer extends KeyStabilizer {
   _ForcedKeyStabilizer(this.forced);
-  final KeyCandidate forced;
+  KeyCandidate? forced;
 
   @override
   KeyCandidate? get displayed => forced;
