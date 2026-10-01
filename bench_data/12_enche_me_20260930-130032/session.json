@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "song": {
+    "number": 12,
+    "title": "Enche-me",
+    "artist": "Isaías Saad, Gabriela Rocha",
+    "youtube": "",
+    "duration_s": 448,
+    "reference": {
+      "key": "D",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {
+          "from_s": 0.0,
+          "key": "Ab",
+          "mode": "major"
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "reference": {
+    "key": "D",
+    "mode": "major",
+    "source": "Cifra Club",
+    "segments": [
+      {
+        "from_s": 0.0,
+        "key": "Ab",
+        "mode": "major"
+      }
+    ],
+    "notes": ""
+  },
+  "capture": {
+    "started_wall": "2026-09-30T13:00:32.631428",
+    "ended_wall": "2026-09-30T13:08:07.011729",
+    "device": "Poco X7 Pro",
+    "android": "15",
+    "app_version": "1.3.5",
+    "git": "v3.5.2",
+    "config": "v2;w20;harm;aar;song60;far12;near45;tol0.8;floor0.25;drain0.5;bass0.25",
+    "playback": "alto-falantes do notebook, volume fixo",
+    "distance_cm": 40,
+    "room": "sala silenciosa"
+  },
+  "verdict": {
+    "final_bars_top3": [
+      "A",
+      "A#",
+      "C"
+    ],
+    "final_label": "D Maior",
+    "final_second": "G Maior",
+    "result": "acertou",
+    "notes": "variou bastante mas acertou."
+  },
+  "counts": {
+    "frames": 4751,
+    "readings": 883,
+    "marks": 0
+  }
+}

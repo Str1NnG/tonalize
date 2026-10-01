@@ -1,0 +1,32 @@
+{
+ "cls": "ii",
+ "time_on_ref": 0.0,
+ "final": "Gm",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 175,
+   "ref": "F",
+   "final": "Gm",
+   "cls": "ii",
+   "time_on_ref": 0.0
+  },
+  {
+   "from_s": 175,
+   "to_s": 264.614,
+   "ref": "Em",
+   "final": "G",
+   "cls": "relativo",
+   "time_on_ref": 0.0
+  }
+ ],
+ "changes": 2,
+ "events": [
+  {
+   "t_s": 246.5,
+   "event": "neighborKeyConfirmed",
+   "key": "G"
+  }
+ ],
+ "end_of_music_s": 264.6
+}

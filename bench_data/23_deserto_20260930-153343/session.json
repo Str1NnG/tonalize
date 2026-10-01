@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "song": {
+    "number": 23,
+    "title": "Deserto",
+    "artist": "Maria Marçal",
+    "youtube": "",
+    "duration_s": 267,
+    "reference": {
+      "key": "B",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {
+          "from_s": 0.0,
+          "key": "F#",
+          "mode": "minor"
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "reference": {
+    "key": "B",
+    "mode": "major",
+    "source": "Cifra Club",
+    "segments": [
+      {
+        "from_s": 0.0,
+        "key": "F#",
+        "mode": "minor"
+      }
+    ],
+    "notes": ""
+  },
+  "capture": {
+    "started_wall": "2026-09-30T15:33:43.971908",
+    "ended_wall": "2026-09-30T15:38:15.498034",
+    "device": "Poco X7 Pro",
+    "android": "15",
+    "app_version": "1.3.5",
+    "git": "v3.5.2",
+    "config": "v2;w20;harm;aar;song60;far12;near45;tol0.8;floor0.25;drain0.5;bass0.25",
+    "playback": "alto-falantes do notebook, volume fixo",
+    "distance_cm": 40,
+    "room": "sala silenciosa"
+  },
+  "verdict": {
+    "final_bars_top3": [
+      "E",
+      "B",
+      "G#"
+    ],
+    "final_label": "B Maior",
+    "final_second": "G# Menor",
+    "result": "acertou",
+    "notes": "Acertivo e muito estável."
+  },
+  "counts": {
+    "frames": 2796,
+    "readings": 519,
+    "marks": 0
+  }
+}

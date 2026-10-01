@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "song": {
+    "number": 28,
+    "title": "Faraó ou Deus / Cadê o Vaso / Mestre / Sapato de Fogo / Altar Fumegando",
+    "artist": "Banda Som e Louvor",
+    "youtube": "",
+    "duration_s": 280,
+    "reference": {
+      "key": "C",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {
+          "from_s": 0.0,
+          "key": "D",
+          "mode": "minor"
+        }
+      ],
+      "notes": "Medley"
+    }
+  },
+  "reference": {
+    "key": "C",
+    "mode": "major",
+    "source": "Cifra Club",
+    "segments": [
+      {
+        "from_s": 0.0,
+        "key": "D",
+        "mode": "minor"
+      }
+    ],
+    "notes": "Medley"
+  },
+  "capture": {
+    "started_wall": "2026-09-30T15:59:54.079387",
+    "ended_wall": "2026-09-30T16:04:30.078790",
+    "device": "Poco X7 Pro",
+    "android": "15",
+    "app_version": "1.3.5",
+    "git": "v3.5.2",
+    "config": "v2;w20;harm;aar;song60;far12;near45;tol0.8;floor0.25;drain0.5;bass0.25",
+    "playback": "alto-falantes do notebook, volume fixo",
+    "distance_cm": 40,
+    "room": "sala silenciosa"
+  },
+  "verdict": {
+    "final_bars_top3": [
+      "G#",
+      "B",
+      "D"
+    ],
+    "final_label": "A Maior",
+    "final_second": "B Menor",
+    "result": "acertou",
+    "notes": "A cifra diz que é C, porém eu acredito que o tom original seja Am"
+  },
+  "counts": {
+    "frames": 2782,
+    "readings": 517,
+    "marks": 0
+  }
+}

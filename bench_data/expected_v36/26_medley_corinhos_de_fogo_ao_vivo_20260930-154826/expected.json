@@ -1,0 +1,37 @@
+{
+ "cls": "exato",
+ "time_on_ref": 0.862,
+ "final": "Bm",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 100,
+   "ref": "Bm",
+   "final": "Bm",
+   "cls": "exato",
+   "time_on_ref": 1.0
+  },
+  {
+   "from_s": 100,
+   "to_s": 299.908,
+   "ref": "D",
+   "final": "D",
+   "cls": "exato",
+   "time_on_ref": 0.792
+  }
+ ],
+ "changes": 2,
+ "events": [
+  {
+   "t_s": 106.2,
+   "event": "farKeyConfirmed",
+   "key": "E"
+  },
+  {
+   "t_s": 141.7,
+   "event": "farKeyConfirmed",
+   "key": "D"
+  }
+ ],
+ "end_of_music_s": 299.9
+}

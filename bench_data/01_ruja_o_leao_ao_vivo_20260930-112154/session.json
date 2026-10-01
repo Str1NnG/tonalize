@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "song": {
+    "number": 1,
+    "title": "Ruja o Leão (ao vivo)",
+    "artist": "Fhop Music",
+    "youtube": "https://www.youtube.com/watch?v=jtm9HiYZ7UQ",
+    "duration_s": 499,
+    "reference": {
+      "key": "F#",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {
+          "from_s": 0.0,
+          "key": "A",
+          "mode": "major"
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "reference": {
+    "key": "F#",
+    "mode": "minor",
+    "source": "Cifra Club",
+    "segments": [
+      {
+        "from_s": 0.0,
+        "key": "A",
+        "mode": "major"
+      }
+    ],
+    "notes": ""
+  },
+  "capture": {
+    "started_wall": "2026-09-30T11:21:54.419896",
+    "ended_wall": "2026-09-30T11:30:20.524868",
+    "device": "Poco X7 Pro",
+    "android": "15",
+    "app_version": "1.3.5",
+    "git": "v3.5.2",
+    "config": "v2;w20;harm;aar;song60;far12;near45;tol0.8;floor0.25;drain0.5;bass0.25",
+    "playback": "alto-falantes do notebook, volume fixo",
+    "distance_cm": 40,
+    "room": "sala silenciosa"
+  },
+  "verdict": {
+    "final_bars_top3": [
+      "C#",
+      "F#",
+      "A"
+    ],
+    "final_label": "F# Menor",
+    "final_second": "Gb Maior",
+    "result": "acertou",
+    "notes": ""
+  },
+  "counts": {
+    "frames": 5224,
+    "readings": 978,
+    "marks": 0
+  }
+}

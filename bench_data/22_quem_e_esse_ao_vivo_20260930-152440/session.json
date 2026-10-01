@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "song": {
+    "number": 22,
+    "title": "Quem É Esse? (ao vivo)",
+    "artist": "Julliany Souza",
+    "youtube": "",
+    "duration_s": 571,
+    "reference": {
+      "key": "F#",
+      "mode": "major",
+      "source": "Cifra Club",
+      "segments": [
+        {
+          "from_s": 0.0,
+          "key": "G",
+          "mode": "major"
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "reference": {
+    "key": "F#",
+    "mode": "major",
+    "source": "Cifra Club",
+    "segments": [
+      {
+        "from_s": 0.0,
+        "key": "G",
+        "mode": "major"
+      }
+    ],
+    "notes": ""
+  },
+  "capture": {
+    "started_wall": "2026-09-30T15:24:40.295899",
+    "ended_wall": "2026-09-30T15:33:11.989674",
+    "device": "Poco X7 Pro",
+    "android": "15",
+    "app_version": "1.3.5",
+    "git": "v3.5.2",
+    "config": "v2;w20;harm;aar;song60;far12;near45;tol0.8;floor0.25;drain0.5;bass0.25",
+    "playback": "alto-falantes do notebook, volume fixo",
+    "distance_cm": 40,
+    "room": "sala silenciosa"
+  },
+  "verdict": {
+    "final_bars_top3": [
+      "A#",
+      "G#",
+      "A"
+    ],
+    "final_label": "Eb Maior",
+    "final_second": "Ab Maior",
+    "result": "parcial",
+    "notes": "acertou quando ficou boa parte do tempo em Gb maior. acredito que na segunda parte a música suba 1 tom ou algo do tipo, então entendi como resultado parcial."
+  },
+  "counts": {
+    "frames": 5085,
+    "readings": 946,
+    "marks": 0
+  }
+}

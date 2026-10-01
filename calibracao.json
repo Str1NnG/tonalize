@@ -1,0 +1,28 @@
+{
+  "versao": "v3.6-calibrado",
+  "bancada": "tonalize_bench_20260930_163426 (33 músicas, 30/09/2026)",
+  "profiles": "aar",
+  "minor_profiles": "aar_b7",
+  "window_s": 20,
+  "halflife_s": 10,
+  "song_window_s": 240,
+  "song_halflife_s": 60,
+  "song_silence_s": 6,
+  "young_s": 30,
+  "young_max_s": 60,
+  "song_far_s": 20,
+  "song_near_s": 45,
+  "evidence_tol": 0.8,
+  "evidence_floor": 0.25,
+  "evidence_drain": 0.5,
+  "strict_notes": false,
+  "min_s": 2,
+  "show_after_s": 4,
+  "bass_share": 0.0,
+  "resultado_na_bancada": {
+    "musicas_simples": 24,
+    "tom_exato": 19,
+    "exato_ou_relativo": 23,
+    "tempo_na_referencia": 0.70
+  }
+}

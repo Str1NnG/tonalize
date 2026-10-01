@@ -1,0 +1,40 @@
+{
+ "cls": "exato",
+ "time_on_ref": 0.45,
+ "final": "Am",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 55,
+   "ref": "Am",
+   "final": "Am",
+   "cls": "exato",
+   "time_on_ref": 0.835
+  },
+  {
+   "from_s": 55,
+   "to_s": 215,
+   "ref": "A",
+   "final": "A",
+   "cls": "exato",
+   "time_on_ref": 0.439
+  },
+  {
+   "from_s": 215,
+   "to_s": 258.391,
+   "ref": "E",
+   "final": "A",
+   "cls": "IV (subdominante)",
+   "time_on_ref": 0.0
+  }
+ ],
+ "changes": 2,
+ "events": [
+  {
+   "t_s": 145.0,
+   "event": "neighborKeyConfirmed",
+   "key": "A"
+  }
+ ],
+ "end_of_music_s": 258.4
+}

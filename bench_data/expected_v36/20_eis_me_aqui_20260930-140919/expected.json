@@ -1,0 +1,18 @@
+{
+ "cls": "relativo",
+ "time_on_ref": 0.0,
+ "final": "D",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 428.64,
+   "ref": "Bm",
+   "final": "D",
+   "cls": "relativo",
+   "time_on_ref": 0.0
+  }
+ ],
+ "changes": 0,
+ "events": [],
+ "end_of_music_s": 428.6
+}

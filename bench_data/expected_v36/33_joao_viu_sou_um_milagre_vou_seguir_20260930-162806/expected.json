@@ -1,0 +1,32 @@
+{
+ "cls": "ii",
+ "time_on_ref": 0.25,
+ "final": "Gm",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 205,
+   "ref": "F",
+   "final": "Gm",
+   "cls": "ii",
+   "time_on_ref": 0.059
+  },
+  {
+   "from_s": 205,
+   "to_s": 352.943,
+   "ref": "G",
+   "final": "G",
+   "cls": "exato",
+   "time_on_ref": 0.514
+  }
+ ],
+ "changes": 4,
+ "events": [
+  {
+   "t_s": 277.4,
+   "event": "neighborKeyConfirmed",
+   "key": "G"
+  }
+ ],
+ "end_of_music_s": 352.9
+}

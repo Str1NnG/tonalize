@@ -1,0 +1,29 @@
+{
+ "cls": "exato",
+ "time_on_ref": 0.157,
+ "final": "Am",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 369.754,
+   "ref": "Am",
+   "final": "Am",
+   "cls": "exato",
+   "time_on_ref": 0.157
+  }
+ ],
+ "changes": 4,
+ "events": [
+  {
+   "t_s": 122.2,
+   "event": "neighborKeyConfirmed",
+   "key": "G"
+  },
+  {
+   "t_s": 313.7,
+   "event": "neighborKeyConfirmed",
+   "key": "Am"
+  }
+ ],
+ "end_of_music_s": 369.8
+}

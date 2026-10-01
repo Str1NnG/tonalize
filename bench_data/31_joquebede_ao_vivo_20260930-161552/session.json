@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "song": {
+    "number": 31,
+    "title": "Joquebede (ao vivo)",
+    "artist": "Israel Santos",
+    "youtube": "",
+    "duration_s": 251,
+    "reference": {
+      "key": "A",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {
+          "from_s": 0.0,
+          "key": "E",
+          "mode": "minor"
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "reference": {
+    "key": "A",
+    "mode": "minor",
+    "source": "Cifra Club",
+    "segments": [
+      {
+        "from_s": 0.0,
+        "key": "E",
+        "mode": "minor"
+      }
+    ],
+    "notes": ""
+  },
+  "capture": {
+    "started_wall": "2026-09-30T16:15:52.779423",
+    "ended_wall": "2026-09-30T16:20:02.815938",
+    "device": "Poco X7 Pro",
+    "android": "15",
+    "app_version": "1.3.5",
+    "git": "v3.5.2",
+    "config": "v2;w20;harm;aar;song60;far12;near45;tol0.8;floor0.25;drain0.5;bass0.25",
+    "playback": "alto-falantes do notebook, volume fixo",
+    "distance_cm": 40,
+    "room": "sala silenciosa"
+  },
+  "verdict": {
+    "final_bars_top3": [
+      "A",
+      "D",
+      "B"
+    ],
+    "final_label": "A Menor",
+    "final_second": "G Maior",
+    "result": "acertou",
+    "notes": "demorou um pouco mas se encontrou."
+  },
+  "counts": {
+    "frames": 2555,
+    "readings": 475,
+    "marks": 0
+  }
+}

@@ -1,0 +1,53 @@
+{
+ "cls": "exato",
+ "time_on_ref": 0.471,
+ "final": "Dm",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 85,
+   "ref": "Dm",
+   "final": "Dm",
+   "cls": "exato",
+   "time_on_ref": 1.0
+  },
+  {
+   "from_s": 120,
+   "to_s": 160,
+   "ref": "G",
+   "final": "G",
+   "cls": "exato",
+   "time_on_ref": 0.287
+  },
+  {
+   "from_s": 160,
+   "to_s": 220,
+   "ref": "D",
+   "final": "G",
+   "cls": "IV (subdominante)",
+   "time_on_ref": 0.0
+  },
+  {
+   "from_s": 220,
+   "to_s": 240,
+   "ref": "A",
+   "final": "G",
+   "cls": "distante",
+   "time_on_ref": 0.0
+  }
+ ],
+ "changes": 3,
+ "events": [
+  {
+   "t_s": 93.1,
+   "event": "farKeyConfirmed",
+   "key": "G"
+  },
+  {
+   "t_s": 116.1,
+   "event": "farKeyConfirmed",
+   "key": "Dm"
+  }
+ ],
+ "end_of_music_s": 242.7
+}

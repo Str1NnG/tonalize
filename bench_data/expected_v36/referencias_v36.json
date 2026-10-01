@@ -1,0 +1,380 @@
+{
+ "01": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "F#m"
+   }
+  ]
+ },
+ "02": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Am"
+   }
+  ]
+ },
+ "03": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Cm"
+   }
+  ]
+ },
+ "04": {
+  "ambigua": true,
+  "candidates": [
+   "C#m",
+   "E"
+  ],
+  "segments": []
+ },
+ "05": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Am"
+   }
+  ]
+ },
+ "06": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "A"
+   }
+  ]
+ },
+ "07": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "G"
+   }
+  ]
+ },
+ "08": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Am"
+   }
+  ]
+ },
+ "09": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "G#"
+   }
+  ]
+ },
+ "10": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Am"
+   }
+  ]
+ },
+ "11": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "F#"
+   }
+  ]
+ },
+ "12": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "D"
+   }
+  ]
+ },
+ "13": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "G"
+   }
+  ]
+ },
+ "14": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "F"
+   }
+  ]
+ },
+ "15": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "D"
+   }
+  ]
+ },
+ "16": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "G#m"
+   }
+  ]
+ },
+ "17": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Em"
+   }
+  ]
+ },
+ "18": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "C#"
+   }
+  ]
+ },
+ "19": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "G#"
+   }
+  ]
+ },
+ "20": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Bm"
+   }
+  ]
+ },
+ "21": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "B"
+   }
+  ]
+ },
+ "22": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": 315,
+    "key": "F#"
+   },
+   {
+    "from_s": 315,
+    "to_s": null,
+    "key": "G#"
+   }
+  ]
+ },
+ "23": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "B"
+   }
+  ]
+ },
+ "24": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "C#"
+   }
+  ]
+ },
+ "25": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "D"
+   }
+  ]
+ },
+ "26": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": 100,
+    "key": "Bm"
+   },
+   {
+    "from_s": 100,
+    "to_s": null,
+    "key": "D"
+   }
+  ]
+ },
+ "27": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": 85,
+    "key": "Dm"
+   },
+   {
+    "from_s": 120,
+    "to_s": 160,
+    "key": "G"
+   },
+   {
+    "from_s": 160,
+    "to_s": 220,
+    "key": "D"
+   },
+   {
+    "from_s": 220,
+    "to_s": 240,
+    "key": "A"
+   },
+   {
+    "from_s": 240,
+    "to_s": null,
+    "key": null
+   }
+  ]
+ },
+ "28": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": 55,
+    "key": "Am"
+   },
+   {
+    "from_s": 55,
+    "to_s": 215,
+    "key": "A"
+   },
+   {
+    "from_s": 215,
+    "to_s": null,
+    "key": "E"
+   }
+  ]
+ },
+ "29": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": 175,
+    "key": "F"
+   },
+   {
+    "from_s": 175,
+    "to_s": null,
+    "key": "Em"
+   }
+  ]
+ },
+ "30": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Dm"
+   }
+  ]
+ },
+ "31": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "Am"
+   }
+  ]
+ },
+ "32": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": null,
+    "key": "F"
+   }
+  ]
+ },
+ "33": {
+  "ambigua": false,
+  "segments": [
+   {
+    "from_s": 0,
+    "to_s": 205,
+    "key": "F"
+   },
+   {
+    "from_s": 205,
+    "to_s": null,
+    "key": "G"
+   }
+  ]
+ }
+}

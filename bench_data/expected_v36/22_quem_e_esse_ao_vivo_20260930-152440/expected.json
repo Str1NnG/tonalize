@@ -1,0 +1,32 @@
+{
+ "cls": "exato",
+ "time_on_ref": 0.62,
+ "final": "F#",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 315,
+   "ref": "F#",
+   "final": "F#",
+   "cls": "exato",
+   "time_on_ref": 0.939
+  },
+  {
+   "from_s": 315,
+   "to_s": 477.03,
+   "ref": "G#",
+   "final": "D#",
+   "cls": "V (dominante)",
+   "time_on_ref": 0.0
+  }
+ ],
+ "changes": 2,
+ "events": [
+  {
+   "t_s": 372.5,
+   "event": "farKeyConfirmed",
+   "key": "D#"
+  }
+ ],
+ "end_of_music_s": 477.0
+}

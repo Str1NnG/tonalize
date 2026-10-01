@@ -1,0 +1,777 @@
+{
+ "config": {
+  "profiles": "aar",
+  "minor_profiles": "aar_b7",
+  "window_s": 20,
+  "halflife_s": 10,
+  "song_window_s": 240,
+  "song_halflife_s": 60,
+  "song_silence_s": 6,
+  "young_s": 30,
+  "young_max_s": 60,
+  "song_far_s": 20,
+  "song_near_s": 45,
+  "evidence_tol": 0.8,
+  "evidence_floor": 0.25,
+  "evidence_drain": 0.5,
+  "strict": false,
+  "min_s": 2,
+  "show_after_s": 4,
+  "bass_share": 0,
+  "eval_dt_s": 0.5,
+  "evidence_mode": "displaced + continuidade diatônica",
+  "hold_after_confirm": true
+ },
+ "sessions": {
+  "01": {
+   "session": "01_ruja_o_leao_ao_vivo_20260930-112154",
+   "cls": "exato",
+   "time_on_ref": 0.969,
+   "final": "F#m",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 489.383,
+     "ref": "F#m",
+     "final": "F#m",
+     "cls": "exato",
+     "time_on_ref": 0.969
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 489.4
+  },
+  "02": {
+   "session": "02_o_encontro_20260930-113504",
+   "cls": "exato",
+   "time_on_ref": 0.157,
+   "final": "Am",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 369.754,
+     "ref": "Am",
+     "final": "Am",
+     "cls": "exato",
+     "time_on_ref": 0.157
+    }
+   ],
+   "changes": 4,
+   "events": [
+    {
+     "t_s": 122.2,
+     "event": "neighborKeyConfirmed",
+     "key": "G"
+    },
+    {
+     "t_s": 313.7,
+     "event": "neighborKeyConfirmed",
+     "key": "Am"
+    }
+   ],
+   "end_of_music_s": 369.8
+  },
+  "03": {
+   "session": "03_rei_e_santo_20260930-114443",
+   "cls": "relativo",
+   "time_on_ref": 0.0,
+   "final": "D#",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 366.503,
+     "ref": "Cm",
+     "final": "D#",
+     "cls": "relativo",
+     "time_on_ref": 0.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 366.5
+  },
+  "04": {
+   "session": "04_reacende_a_chama_20260930-115152",
+   "ambigua": true,
+   "changes": 2,
+   "events": [],
+   "end_of_music_s": 347.6
+  },
+  "05": {
+   "session": "05_efesios_6_ao_vivo_20260930-115829",
+   "cls": "exato",
+   "time_on_ref": 0.99,
+   "final": "Am",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 300.93,
+     "ref": "Am",
+     "final": "Am",
+     "cls": "exato",
+     "time_on_ref": 0.99
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 300.9
+  },
+  "06": {
+   "session": "06_quero_conhecer_jesus_cover_20260930-120509",
+   "cls": "relativo",
+   "time_on_ref": 0.0,
+   "final": "F#m",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 409.971,
+     "ref": "A",
+     "final": "F#m",
+     "cls": "relativo",
+     "time_on_ref": 0.0
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 410.0
+  },
+  "07": {
+   "session": "07_atos_2_20260930-121503",
+   "cls": "exato",
+   "time_on_ref": 0.785,
+   "final": "G",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 312.169,
+     "ref": "G",
+     "final": "G",
+     "cls": "exato",
+     "time_on_ref": 0.785
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 312.2
+  },
+  "08": {
+   "session": "08_lindo_es_so_quero_ver_voce_20260930-122100",
+   "cls": "exato",
+   "time_on_ref": 0.18,
+   "final": "Am",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 396.411,
+     "ref": "Am",
+     "final": "Am",
+     "cls": "exato",
+     "time_on_ref": 0.18
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 396.4
+  },
+  "09": {
+   "session": "09_a_casa_e_sua_20260930-122906",
+   "cls": "exato",
+   "time_on_ref": 0.951,
+   "final": "G#",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 335.296,
+     "ref": "G#",
+     "final": "G#",
+     "cls": "exato",
+     "time_on_ref": 0.951
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 335.3
+  },
+  "10": {
+   "session": "10_lugar_secreto_20260930-123522",
+   "cls": "exato",
+   "time_on_ref": 0.681,
+   "final": "Am",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 414.801,
+     "ref": "Am",
+     "final": "Am",
+     "cls": "exato",
+     "time_on_ref": 0.681
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 414.8
+  },
+  "11": {
+   "session": "11_ousado_amor_20260930-125341",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "F#",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 328.515,
+     "ref": "F#",
+     "final": "F#",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 328.5
+  },
+  "12": {
+   "session": "12_enche_me_20260930-130032",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "D",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 444.429,
+     "ref": "D",
+     "final": "D",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 444.4
+  },
+  "13": {
+   "session": "13_jeova_jireh_20260930-130844",
+   "cls": "exato",
+   "time_on_ref": 0.939,
+   "final": "G",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 454.925,
+     "ref": "G",
+     "final": "G",
+     "cls": "exato",
+     "time_on_ref": 0.939
+    }
+   ],
+   "changes": 2,
+   "events": [],
+   "end_of_music_s": 454.9
+  },
+  "14": {
+   "session": "14_vitorioso_es_20260930-131735",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "F",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 345.048,
+     "ref": "F",
+     "final": "F",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 345.0
+  },
+  "15": {
+   "session": "15_joao_20_pra_sempre_ao_vivo_20260930-132404",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "D",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 279.475,
+     "ref": "D",
+     "final": "D",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 279.5
+  },
+  "16": {
+   "session": "16_melhor_amigo_o_que_seria_de_mim_ao_vivo_20260930-132935",
+   "cls": "exato",
+   "time_on_ref": 0.988,
+   "final": "G#m",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 674.771,
+     "ref": "G#m",
+     "final": "G#m",
+     "cls": "exato",
+     "time_on_ref": 0.988
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 674.8
+  },
+  "17": {
+   "session": "17_fogo_em_teus_olhos_20260930-134208",
+   "cls": "exato",
+   "time_on_ref": 0.904,
+   "final": "Em",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 461.612,
+     "ref": "Em",
+     "final": "Em",
+     "cls": "exato",
+     "time_on_ref": 0.904
+    }
+   ],
+   "changes": 2,
+   "events": [],
+   "end_of_music_s": 461.6
+  },
+  "18": {
+   "session": "18_tudo_e_perda_ao_vivo_20260930-135455",
+   "cls": "ii",
+   "time_on_ref": 0.162,
+   "final": "D#m",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 398.175,
+     "ref": "C#",
+     "final": "D#m",
+     "cls": "ii",
+     "time_on_ref": 0.162
+    }
+   ],
+   "changes": 3,
+   "events": [],
+   "end_of_music_s": 398.2
+  },
+  "19": {
+   "session": "19_primeira_essencia_ministracao_20260930-140316",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "G#",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 327.679,
+     "ref": "G#",
+     "final": "G#",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 327.7
+  },
+  "20": {
+   "session": "20_eis_me_aqui_20260930-140919",
+   "cls": "relativo",
+   "time_on_ref": 0.0,
+   "final": "D",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 428.64,
+     "ref": "Bm",
+     "final": "D",
+     "cls": "relativo",
+     "time_on_ref": 0.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 428.6
+  },
+  "21": {
+   "session": "21_eu_sou_teu_pai_20260930-141816",
+   "cls": "relativo",
+   "time_on_ref": 0.032,
+   "final": "G#m",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 370.033,
+     "ref": "B",
+     "final": "G#m",
+     "cls": "relativo",
+     "time_on_ref": 0.032
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 370.0
+  },
+  "22": {
+   "session": "22_quem_e_esse_ao_vivo_20260930-152440",
+   "cls": "exato",
+   "time_on_ref": 0.62,
+   "final": "F#",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 315,
+     "ref": "F#",
+     "final": "F#",
+     "cls": "exato",
+     "time_on_ref": 0.939
+    },
+    {
+     "from_s": 315,
+     "to_s": 477.03,
+     "ref": "G#",
+     "final": "D#",
+     "cls": "V (dominante)",
+     "time_on_ref": 0.0
+    }
+   ],
+   "changes": 2,
+   "events": [
+    {
+     "t_s": 372.5,
+     "event": "farKeyConfirmed",
+     "key": "D#"
+    }
+   ],
+   "end_of_music_s": 477.0
+  },
+  "23": {
+   "session": "23_deserto_20260930-153343",
+   "cls": "exato",
+   "time_on_ref": 0.996,
+   "final": "B",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 259.691,
+     "ref": "B",
+     "final": "B",
+     "cls": "exato",
+     "time_on_ref": 0.996
+    }
+   ],
+   "changes": 1,
+   "events": [],
+   "end_of_music_s": 259.7
+  },
+  "24": {
+   "session": "24_bencaos_que_nao_tem_fim_20260930-153906",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "C#",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 205.728,
+     "ref": "C#",
+     "final": "C#",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 205.7
+  },
+  "25": {
+   "session": "25_ele_nao_desiste_de_voce_20260930-154257",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "D",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 227.555,
+     "ref": "D",
+     "final": "D",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 227.6
+  },
+  "26": {
+   "session": "26_medley_corinhos_de_fogo_ao_vivo_20260930-154826",
+   "cls": "exato",
+   "time_on_ref": 0.862,
+   "final": "Bm",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 100,
+     "ref": "Bm",
+     "final": "Bm",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    },
+    {
+     "from_s": 100,
+     "to_s": 299.908,
+     "ref": "D",
+     "final": "D",
+     "cls": "exato",
+     "time_on_ref": 0.792
+    }
+   ],
+   "changes": 2,
+   "events": [
+    {
+     "t_s": 106.2,
+     "event": "farKeyConfirmed",
+     "key": "E"
+    },
+    {
+     "t_s": 141.7,
+     "event": "farKeyConfirmed",
+     "key": "D"
+    }
+   ],
+   "end_of_music_s": 299.9
+  },
+  "27": {
+   "session": "27_500_graus_vai_queimar_dia_do_pentecostes_desemborca_o_vaso_20260930-155501",
+   "cls": "exato",
+   "time_on_ref": 0.471,
+   "final": "Dm",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 85,
+     "ref": "Dm",
+     "final": "Dm",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    },
+    {
+     "from_s": 120,
+     "to_s": 160,
+     "ref": "G",
+     "final": "G",
+     "cls": "exato",
+     "time_on_ref": 0.287
+    },
+    {
+     "from_s": 160,
+     "to_s": 220,
+     "ref": "D",
+     "final": "G",
+     "cls": "IV (subdominante)",
+     "time_on_ref": 0.0
+    },
+    {
+     "from_s": 220,
+     "to_s": 240,
+     "ref": "A",
+     "final": "G",
+     "cls": "distante",
+     "time_on_ref": 0.0
+    }
+   ],
+   "changes": 3,
+   "events": [
+    {
+     "t_s": 93.1,
+     "event": "farKeyConfirmed",
+     "key": "G"
+    },
+    {
+     "t_s": 116.1,
+     "event": "farKeyConfirmed",
+     "key": "Dm"
+    }
+   ],
+   "end_of_music_s": 242.7
+  },
+  "28": {
+   "session": "28_farao_ou_deus_cade_o_vaso_mestre_sapato_de_fogo_altar_fumegando_20260930-155954",
+   "cls": "exato",
+   "time_on_ref": 0.45,
+   "final": "Am",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 55,
+     "ref": "Am",
+     "final": "Am",
+     "cls": "exato",
+     "time_on_ref": 0.835
+    },
+    {
+     "from_s": 55,
+     "to_s": 215,
+     "ref": "A",
+     "final": "A",
+     "cls": "exato",
+     "time_on_ref": 0.439
+    },
+    {
+     "from_s": 215,
+     "to_s": 258.391,
+     "ref": "E",
+     "final": "A",
+     "cls": "IV (subdominante)",
+     "time_on_ref": 0.0
+    }
+   ],
+   "changes": 2,
+   "events": [
+    {
+     "t_s": 145.0,
+     "event": "neighborKeyConfirmed",
+     "key": "A"
+    }
+   ],
+   "end_of_music_s": 258.4
+  },
+  "29": {
+   "session": "29_joao_viu_ao_vivo_20260930-160507",
+   "cls": "ii",
+   "time_on_ref": 0.0,
+   "final": "Gm",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 175,
+     "ref": "F",
+     "final": "Gm",
+     "cls": "ii",
+     "time_on_ref": 0.0
+    },
+    {
+     "from_s": 175,
+     "to_s": 264.614,
+     "ref": "Em",
+     "final": "G",
+     "cls": "relativo",
+     "time_on_ref": 0.0
+    }
+   ],
+   "changes": 2,
+   "events": [
+    {
+     "t_s": 246.5,
+     "event": "neighborKeyConfirmed",
+     "key": "G"
+    }
+   ],
+   "end_of_music_s": 264.6
+  },
+  "30": {
+   "session": "30_vem_senhor_20260930-161029",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "Dm",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 254.397,
+     "ref": "Dm",
+     "final": "Dm",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 254.4
+  },
+  "31": {
+   "session": "31_joquebede_ao_vivo_20260930-161552",
+   "cls": "exato",
+   "time_on_ref": 0.523,
+   "final": "Am",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 240.651,
+     "ref": "Am",
+     "final": "Am",
+     "cls": "exato",
+     "time_on_ref": 0.523
+    }
+   ],
+   "changes": 2,
+   "events": [
+    {
+     "t_s": 120.3,
+     "event": "neighborKeyConfirmed",
+     "key": "Am"
+    }
+   ],
+   "end_of_music_s": 240.7
+  },
+  "32": {
+   "session": "32_alem_do_rio_azul_20260930-162051",
+   "cls": "exato",
+   "time_on_ref": 1.0,
+   "final": "F",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 303.345,
+     "ref": "F",
+     "final": "F",
+     "cls": "exato",
+     "time_on_ref": 1.0
+    }
+   ],
+   "changes": 0,
+   "events": [],
+   "end_of_music_s": 303.3
+  },
+  "33": {
+   "session": "33_joao_viu_sou_um_milagre_vou_seguir_20260930-162806",
+   "cls": "ii",
+   "time_on_ref": 0.25,
+   "final": "Gm",
+   "segments": [
+    {
+     "from_s": 0,
+     "to_s": 205,
+     "ref": "F",
+     "final": "Gm",
+     "cls": "ii",
+     "time_on_ref": 0.059
+    },
+    {
+     "from_s": 205,
+     "to_s": 352.943,
+     "ref": "G",
+     "final": "G",
+     "cls": "exato",
+     "time_on_ref": 0.514
+    }
+   ],
+   "changes": 4,
+   "events": [
+    {
+     "t_s": 277.4,
+     "event": "neighborKeyConfirmed",
+     "key": "G"
+    }
+   ],
+   "end_of_music_s": 352.9
+  }
+ }
+}

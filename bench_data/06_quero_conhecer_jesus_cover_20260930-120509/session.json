@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "song": {
+    "number": 6,
+    "title": "Quero Conhecer Jesus (cover)",
+    "artist": "Cia. SALT",
+    "youtube": "",
+    "duration_s": 416,
+    "reference": {
+      "key": "E",
+      "mode": "minor",
+      "source": "Cifra Club",
+      "segments": [
+        {
+          "from_s": 0.0,
+          "key": "G",
+          "mode": "major"
+        }
+      ],
+      "notes": ""
+    }
+  },
+  "reference": {
+    "key": "E",
+    "mode": "minor",
+    "source": "Cifra Club",
+    "segments": [
+      {
+        "from_s": 0.0,
+        "key": "G",
+        "mode": "major"
+      }
+    ],
+    "notes": ""
+  },
+  "capture": {
+    "started_wall": "2026-09-30T12:05:09.422859",
+    "ended_wall": "2026-09-30T12:13:57.553687",
+    "device": "Poco X7 Pro",
+    "android": "15",
+    "app_version": "1.3.5",
+    "git": "v3.5.2",
+    "config": "v2;w20;harm;aar;song60;far12;near45;tol0.8;floor0.25;drain0.5;bass0.25",
+    "playback": "alto-falantes do notebook, volume fixo",
+    "distance_cm": 40,
+    "room": "sala silenciosa"
+  },
+  "verdict": {
+    "final_bars_top3": [
+      "C#",
+      "G#",
+      "B"
+    ],
+    "final_label": "F# Menor",
+    "final_second": "E Maior",
+    "result": "referencia_duvidosa",
+    "notes": "Não tenho certeza da referência original, se o tom original é em A, ou D ou Em. preciso que tenha essa certeza por mim, mas com certeza o tom final exibido está incorreto, pois a música parecia descansar no D ou no A em alguns momentos, F#m era quando tinha a queda acompanhada de um respiro."
+  },
+  "counts": {
+    "frames": 4365,
+    "readings": 822,
+    "marks": 0
+  }
+}

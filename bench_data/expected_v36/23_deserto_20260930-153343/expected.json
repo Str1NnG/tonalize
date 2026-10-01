@@ -1,0 +1,18 @@
+{
+ "cls": "exato",
+ "time_on_ref": 0.996,
+ "final": "B",
+ "segments": [
+  {
+   "from_s": 0,
+   "to_s": 259.691,
+   "ref": "B",
+   "final": "B",
+   "cls": "exato",
+   "time_on_ref": 0.996
+  }
+ ],
+ "changes": 1,
+ "events": [],
+ "end_of_music_s": 259.7
+}
