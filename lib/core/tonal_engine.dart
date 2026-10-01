@@ -35,7 +35,7 @@ class SongMemoryConfig {
     this.baseHoldSeconds = 20, // regra própria da memória da música: lenta de propósito
     this.neighborHoldSeconds = 30,
     this.showPassageAfterSeconds = 4, // linha "agora" aparece após 4 s de discordância
-    this.bassShare = 0.25,
+    this.bassShare = 0.0,
   });
 
   final bool enabled;

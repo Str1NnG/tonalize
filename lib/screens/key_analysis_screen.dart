@@ -98,31 +98,33 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     _stopwatch.start();
 
     final prefs = await SharedPreferences.getInstance();
-    final stabMode = prefs.getString('stab_mode') ?? 'v2';
+    final stabMode = prefs.getString('stab_mode') ?? 'v3';
     _windowSeconds = prefs.getInt('window_s') ?? 20;
     final useHarmonics = prefs.getBool('harmonics') ?? true;
-    final profileName = prefs.getString('profiles') ?? 'temperley';
+    final profileName = prefs.getString('profiles') ?? 'aarden';
     _logReadings = prefs.getBool('log_readings') ?? false;
     final songMemoryEnabled = prefs.getBool('song_memory') ?? true;
     final songHalfLife = prefs.getInt('song_halflife_s') ?? 60;
-    final songFar = prefs.getInt('song_far_s') ?? 12;
+    final songFar = prefs.getInt('song_far_s') ?? 20;
     final songNear = prefs.getInt('song_near_s') ?? 45;
     final evidenceTol = prefs.getDouble('evidence_tol') ?? 0.8;
     final evidenceFloor = prefs.getDouble('evidence_floor') ?? 0.25;
     final minSeconds = prefs.getInt('min_s') ?? 2;
     final evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
     final strictNotes = prefs.getBool('strict_notes') ?? false;
-    final minorProfileName = prefs.getString('minor_profiles') ?? 'same';
-    final bassShare = prefs.getDouble('bass_share') ?? 0.25;
+    final minorProfileName = prefs.getString('minor_profiles') ?? 'aar_b7';
+    final bassShare = prefs.getDouble('bass_share') ?? 0.0;
     final bassEnabled = bassShare > 0;
 
     // Parse profile
-    ProfileSet profiles = ProfileSet.temperley;
+    ProfileSet profiles = ProfileSet.aarden;
     final pLower = profileName.toLowerCase();
     if (pLower.startsWith('temp') && pLower.contains('kp')) {
       profiles = ProfileSet.temperleyKP;
     } else if (pLower.startsWith('temp')) {
       profiles = ProfileSet.temperley;
+    } else if (pLower.contains('b7') || pLower == 'aar_b7') {
+      profiles = ProfileSet.aardenB7;
     } else if (pLower.startsWith('aar')) {
       profiles = ProfileSet.aarden;
     } else if (pLower.startsWith('krum') || pLower == 'kk') {
@@ -132,7 +134,9 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     // Parse minor profile
     ProfileSet? minorProfiles;
     final mpLower = minorProfileName.toLowerCase();
-    if (mpLower.startsWith('aar')) {
+    if (mpLower.contains('b7') || mpLower == 'aar_b7') {
+      minorProfiles = ProfileSet.aardenB7;
+    } else if (mpLower.startsWith('aar')) {
       minorProfiles = ProfileSet.aarden;
     } else if (mpLower.startsWith('krum') || mpLower == 'kk') {
       minorProfiles = ProfileSet.krumhansl;
@@ -145,8 +149,10 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     final songConfigStr = songMemoryEnabled
         ? 'song$songHalfLife;far$songFar;near$songNear;tol$evidenceTol;floor$evidenceFloor;drain$evidenceDrain'
         : 'nosong';
+    final strictPart = ';strict${strictNotes ? "1" : "0"}';
+    final bassPart = ';bass${bassShare == 0 ? "0" : bassShare}';
     _configString =
-        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code}$minorCode;$songConfigStr${strictNotes ? ";strict" : ""};bass$bassShare';
+        '$stabMode;w$_windowSeconds;${useHarmonics ? "harm" : "noharm"};${profiles.code}$minorCode;$songConfigStr$strictPart$bassPart';
 
     final ChromaAccumulator accumulator;
     final KeyStabilizer stabilizer;

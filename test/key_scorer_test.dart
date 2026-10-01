@@ -76,12 +76,75 @@ void main() {
       expect(scoresTemperley.first.major, isFalse);
       expect((scoresTemperley[0].r - scoresTemperley[1].r).abs(), lessThan(0.01));
 
-      // Sem ênfase na tônica, todos dão Sol♭ maior (tonic 6, major):
-      for (final profileSet in ProfileSet.values) {
+      // Sem ênfase na tônica, os perfis clássicos dão Sol♭ maior (tonic 6, major):
+      for (final profileSet in [ProfileSet.krumhansl, ProfileSet.temperley, ProfileSet.aarden]) {
         final top = KeyScorer(profiles: profileSet).score(baladaSemEnfase).first;
         expect(top.tonic, 6);
         expect(top.major, isTrue);
       }
+    });
+
+    test('5. Perfil aardenMinorB7 e ProfileSet.aardenB7 estrutura básica', () {
+      expect(aardenMinorB7[10], equals(15.0));
+      for (var i = 0; i < 12; i++) {
+        if (i != 10) {
+          expect(aardenMinorB7[i], equals(aardenMinor[i]));
+        }
+      }
+      expect(ProfileSet.aardenB7.code, equals('aar_b7'));
+      expect(ProfileSet.aardenB7.major, equals(aardenMajor));
+      expect(ProfileSet.aardenB7.minor, equals(aardenMinorB7));
+    });
+
+    test('5a. Laço Bm-G-D-A: aar/aar dá Ré; aar/aar_b7 dá Si m', () {
+      // Dó♯ 1, Ré 3, Mi 1, Fá♯ 2, Sol 1, Lá 2, Si 2
+      final vec5a = [0.0, 1.0, 3.0, 0.0, 1.0, 0.0, 2.0, 1.0, 0.0, 2.0, 0.0, 2.0];
+      final scorerAar = KeyScorer(profiles: ProfileSet.aarden, minorProfiles: ProfileSet.aarden);
+      final scorerAarB7 = KeyScorer(profiles: ProfileSet.aarden, minorProfiles: ProfileSet.aardenB7);
+
+      final topAar = scorerAar.score(vec5a).first;
+      expect(topAar.label, equals('D Maior'));
+      expect(topAar.r, closeTo(0.861, 0.01));
+
+      final scoresAarB7 = scorerAarB7.score(vec5a);
+      final topAarB7 = scoresAarB7.first;
+      expect(topAarB7.label, equals('B Menor'));
+      expect(topAarB7.r, closeTo(0.897, 0.01));
+      final dMajScore = scoresAarB7.firstWhere((k) => k.label == 'D Maior');
+      expect(dMajScore.r, closeTo(0.861, 0.01));
+    });
+
+    test('5b. Dó maior com tônica reforçada: Dó em ambos', () {
+      // Dó 3, Ré 1, Mi 2, Fá 1, Sol 2, Lá 1, Si 1
+      final vec5b = [3.0, 0.0, 1.0, 0.0, 2.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0, 1.0];
+      final scorerAar = KeyScorer(profiles: ProfileSet.aarden, minorProfiles: ProfileSet.aarden);
+      final scorerAarB7 = KeyScorer(profiles: ProfileSet.aarden, minorProfiles: ProfileSet.aardenB7);
+
+      expect(scorerAar.score(vec5b).first.label, equals('C Maior'));
+
+      final scoresAarB7 = scorerAarB7.score(vec5b);
+      expect(scoresAarB7.first.label, equals('C Maior'));
+      expect(scoresAarB7.first.r, closeTo(0.905, 0.01));
+      final aMinScore = scoresAarB7.firstWhere((k) => k.label == 'A Menor');
+      expect(aMinScore.r, closeTo(0.831, 0.01));
+    });
+
+    test('5c. Limitação documentada: C-G-Am-F tem mesmo vetor que Am-G-C-F; aar_b7 dá Lá m', () {
+      // Dó 3, Ré 1, Mi 2, Fá 1, Sol 2, Lá 2, Si 1
+      // Laço Dó-Sol-Lá m-Fá com tempos iguais sem ênfase na tônica é lido como o relativo menor
+      final vec5c = [3.0, 0.0, 1.0, 0.0, 2.0, 1.0, 0.0, 2.0, 0.0, 2.0, 0.0, 1.0];
+      final scorerAarB7 = KeyScorer(profiles: ProfileSet.aarden, minorProfiles: ProfileSet.aardenB7);
+      expect(scorerAarB7.score(vec5c).first.label, equals('A Menor'));
+    });
+
+    test('5d. Lá menor com sensível: Lá m em ambos', () {
+      // Lá 3, Dó 2, Mi 3, Sol♯ 1, Si 1, Ré 1, Fá 1
+      final vec5d = [2.0, 0.0, 1.0, 0.0, 3.0, 1.0, 0.0, 0.0, 1.0, 3.0, 0.0, 1.0];
+      final scorerAar = KeyScorer(profiles: ProfileSet.aarden, minorProfiles: ProfileSet.aarden);
+      final scorerAarB7 = KeyScorer(profiles: ProfileSet.aarden, minorProfiles: ProfileSet.aardenB7);
+
+      expect(scorerAar.score(vec5d).first.label, equals('A Menor'));
+      expect(scorerAarB7.score(vec5d).first.label, equals('A Menor'));
     });
   });
 }

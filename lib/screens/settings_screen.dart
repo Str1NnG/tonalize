@@ -17,22 +17,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _fieldMode = false;
 
   // Calibração / Experimento (Plano 2 e Plano 3)
-  String _stabMode = 'v2';
+  String _stabMode = 'v3';
   int _windowS = 20;
   bool _harmonics = true;
-  String _profiles = 'temperley';
+  String _profiles = 'aarden';
   bool _logReadings = false;
   bool _songMemory = true;
   int _songHalflifeS = 60;
-  int _songFarS = 12;
+  int _songFarS = 20;
   int _songNearS = 45;
   double _evidenceTol = 0.8;
   double _evidenceFloor = 0.25;
   int _minS = 2;
   double _evidenceDrain = 0.5;
   bool _strictNotes = false;
-  String _minorProfiles = 'same';
-  double _bassShare = 0.25;
+  String _minorProfiles = 'aar_b7';
+  double _bassShare = 0.0;
 
   @override
   void initState() {
@@ -44,22 +44,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _fieldMode = prefs.getBool('field_mode') ?? false;
-      _stabMode = prefs.getString('stab_mode') ?? 'v2';
+      _stabMode = prefs.getString('stab_mode') ?? 'v3';
       _windowS = prefs.getInt('window_s') ?? 20;
       _harmonics = prefs.getBool('harmonics') ?? true;
-      _profiles = prefs.getString('profiles') ?? 'temperley';
+      _profiles = prefs.getString('profiles') ?? 'aarden';
       _logReadings = prefs.getBool('log_readings') ?? false;
       _songMemory = prefs.getBool('song_memory') ?? true;
       _songHalflifeS = prefs.getInt('song_halflife_s') ?? 60;
-      _songFarS = prefs.getInt('song_far_s') ?? 12;
+      _songFarS = prefs.getInt('song_far_s') ?? 20;
       _songNearS = prefs.getInt('song_near_s') ?? 45;
       _evidenceTol = prefs.getDouble('evidence_tol') ?? 0.8;
       _evidenceFloor = prefs.getDouble('evidence_floor') ?? 0.25;
       _minS = prefs.getInt('min_s') ?? 2;
       _evidenceDrain = prefs.getDouble('evidence_drain') ?? 0.5;
       _strictNotes = prefs.getBool('strict_notes') ?? false;
-      _minorProfiles = prefs.getString('minor_profiles') ?? 'same';
-      _bassShare = prefs.getDouble('bass_share') ?? 0.25;
+      _minorProfiles = prefs.getString('minor_profiles') ?? 'aar_b7';
+      _bassShare = prefs.getDouble('bass_share') ?? 0.0;
     });
   }
 
@@ -224,15 +224,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 leading: const Icon(Icons.tune_outlined),
                 title: const Text('Modo de Estabilidade'),
                 subtitle: Text(
-                  _stabMode == 'v2'
-                      ? 'v2: Histerese por margem (0,05/0,08) + hold (4s/6s)'
-                      : 'v1: Janela plana 10s + 3 leituras consecutivas (baseline)',
+                  _stabMode == 'v3'
+                      ? 'v3: Memória dupla (trecho + música calibrada, padrão)'
+                      : _stabMode == 'v2'
+                          ? 'v2: Histerese por margem (0,05/0,08) + hold (4s/6s)'
+                          : 'v1: Janela plana 10s + 3 leituras consecutivas (baseline)',
                 ),
                 trailing: DropdownButton<String>(
                   value: _stabMode,
                   underline: const SizedBox(),
                   items: const [
-                    DropdownMenuItem(value: 'v2', child: Text('v2 (atual)')),
+                    DropdownMenuItem(value: 'v3', child: Text('v3 (calibrado)')),
+                    DropdownMenuItem(value: 'v2', child: Text('v2 (histerese)')),
                     DropdownMenuItem(value: 'v1', child: Text('v1 (baseline)')),
                   ],
                   onChanged: (val) {
@@ -300,27 +303,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 leading: const Icon(Icons.music_note_outlined),
                 title: const Text('Perfis do Modo Menor'),
                 subtitle: Text(
-                  _minorProfiles == 'krumhansl'
-                      ? 'Krumhansl-Kessler'
-                      : _minorProfiles == 'aarden'
-                          ? 'Aarden-Essen (menor natural)'
-                          : 'Igual ao maior (padrão)',
+                  _minorProfiles == 'aar_b7'
+                      ? 'Aarden-Essen (b7 reforçada, calibrado)'
+                      : _minorProfiles == 'krumhansl'
+                          ? 'Krumhansl-Kessler'
+                          : _minorProfiles == 'aarden'
+                              ? 'Aarden-Essen (menor natural)'
+                              : 'Igual ao maior',
                 ),
                 trailing: DropdownButton<String>(
                   value: _minorProfiles,
                   underline: const SizedBox(),
                   items: const [
                     DropdownMenuItem(
-                      value: 'same',
-                      child: Text('Igual ao maior (padrão)'),
+                      value: 'aar_b7',
+                      child: Text('Aarden-Essen (b7, padrão)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'aarden',
+                      child: Text('Aarden-Essen'),
                     ),
                     DropdownMenuItem(
                       value: 'krumhansl',
                       child: Text('Krumhansl-Kessler'),
                     ),
                     DropdownMenuItem(
-                      value: 'aarden',
-                      child: Text('Aarden-Essen'),
+                      value: 'same',
+                      child: Text('Igual ao maior'),
                     ),
                   ],
                   onChanged: (val) {

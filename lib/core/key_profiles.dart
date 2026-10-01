@@ -137,7 +137,24 @@ const List<double> aardenMinor = [
   1.75623
 ];
 
-enum ProfileSet { krumhansl, temperley, temperleyKP, aarden }
+/// Aarden-Essen com a 7ª menor (b7) reforçada (índice 10 = 15.0).
+/// Resolve músicas no modo menor natural que usam o acorde VII ou b7 melódico.
+const List<double> aardenMinorB7 = [
+  18.2648,
+  0.737619,
+  14.0499,
+  16.8599,
+  0.702494,
+  14.4362,
+  0.702494,
+  18.6161,
+  4.56621,
+  1.93186,
+  15.0,
+  1.75623
+];
+
+enum ProfileSet { krumhansl, temperley, temperleyKP, aarden, aardenB7 }
 
 extension ProfileSetData on ProfileSet {
   List<double> get major => switch (this) {
@@ -145,6 +162,7 @@ extension ProfileSetData on ProfileSet {
         ProfileSet.temperley => temperleyMajor,
         ProfileSet.temperleyKP => temperleyKPMajor,
         ProfileSet.aarden => aardenMajor,
+        ProfileSet.aardenB7 => aardenMajor,
       };
 
   List<double> get minor => switch (this) {
@@ -152,6 +170,7 @@ extension ProfileSetData on ProfileSet {
         ProfileSet.temperley => temperleyMinor,
         ProfileSet.temperleyKP => temperleyKPMinor,
         ProfileSet.aarden => aardenMinor,
+        ProfileSet.aardenB7 => aardenMinorB7,
       };
 
   /// Código curto para a coluna `config` das leituras.
@@ -160,6 +179,7 @@ extension ProfileSetData on ProfileSet {
         ProfileSet.temperley => 'tmp',
         ProfileSet.temperleyKP => 'tkp',
         ProfileSet.aarden => 'aar',
+        ProfileSet.aardenB7 => 'aar_b7',
       };
 
   String get label => switch (this) {
@@ -167,6 +187,7 @@ extension ProfileSetData on ProfileSet {
         ProfileSet.temperley => 'Temperley (1999)',
         ProfileSet.temperleyKP => 'Temperley-Kostka-Payne',
         ProfileSet.aarden => 'Aarden-Essen',
+        ProfileSet.aardenB7 => 'Aarden-Essen (b7)',
       };
 }
 
