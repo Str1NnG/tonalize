@@ -2,7 +2,7 @@ name: keyfinder
 description: "Tonalize: identificação de tonalidade musical ao vivo, processada no celular."
 publish_to: 'none' 
 
-version: 1.0.0+1
+version: 1.4.0+13
 
 environment:
   # Ajustado para o formato padrão para garantir compatibilidade

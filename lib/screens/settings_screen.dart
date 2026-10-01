@@ -589,7 +589,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   showAboutDialog(
                     context: context,
                     applicationName: 'Tonalize',
-                    applicationVersion: '2.0.0',
+                    applicationVersion: 'v3.6-calibrado (1.4.0+13)',
                     applicationLegalese: 'Projeto de Pesquisa Científica',
                     children: <Widget>[
                       const Padding(
