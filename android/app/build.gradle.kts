@@ -34,11 +34,13 @@ android {
 
     // MUDANÇA 3: A configuração de assinatura foi movida para o lugar padrão
     signingConfigs {
-        create("release") {
-            keyAlias = keyProperties["keyAlias"] as String?
-            keyPassword = keyProperties["keyPassword"] as String?
-            storeFile = if (keyProperties["storeFile"] != null) file(keyProperties["storeFile"] as String) else null
-            storePassword = keyProperties["storePassword"] as String?
+        if (keyPropertiesFile.exists()) {
+            create("release") {
+                keyAlias = keyProperties["keyAlias"] as String?
+                keyPassword = keyProperties["keyPassword"] as String?
+                storeFile = if (keyProperties["storeFile"] != null) file(keyProperties["storeFile"] as String) else null
+                storePassword = keyProperties["storePassword"] as String?
+            }
         }
     }
 
@@ -52,7 +54,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (keyPropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
