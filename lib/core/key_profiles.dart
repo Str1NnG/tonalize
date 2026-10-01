@@ -224,6 +224,12 @@ class KeyCandidate {
   String get label => '$name $mode';
   String get shortLabel => '$name${major ? "" : "m"}';
 
+  /// Tom relativo: maior -> tônica + 9 (menor); menor -> tônica + 3 (maior).
+  KeyCandidate get relative {
+    final relTonic = (tonic + (major ? 9 : 3)) % 12;
+    return KeyCandidate(relTonic, !major, 0.0);
+  }
+
   bool sameKey(KeyCandidate? o) =>
       o != null && o.tonic == tonic && o.major == major;
 

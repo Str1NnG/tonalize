@@ -146,5 +146,23 @@ void main() {
       expect(scorerAar.score(vec5d).first.label, equals('A Menor'));
       expect(scorerAarB7.score(vec5d).first.label, equals('A Menor'));
     });
+
+    test('6. KeyCandidate.relative calcula o relativo direto (maior +9 menor, menor +3 maior)', () {
+      const cMaj = KeyCandidate(0, true, 1.0);
+      expect(cMaj.relative.label, equals('A Menor'));
+      expect(cMaj.relative.relative.label, equals('C Maior'));
+
+      const aMin = KeyCandidate(9, false, 1.0);
+      expect(aMin.relative.label, equals('C Maior'));
+
+      const dMaj = KeyCandidate(2, true, 1.0);
+      expect(dMaj.relative.label, equals('B Menor'));
+
+      const ebMin = KeyCandidate(3, false, 1.0);
+      expect(ebMin.relative.label, equals('Gb Maior'));
+
+      const ebMaj = KeyCandidate(3, true, 1.0);
+      expect(ebMaj.relative.label, equals('C Menor'));
+    });
   });
 }

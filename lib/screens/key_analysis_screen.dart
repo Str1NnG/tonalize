@@ -786,6 +786,17 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                         ),
                       ),
                     ],
+                    const SizedBox(height: 4),
+                    Text(
+                      displayedKey != null
+                          ? 'relativo: ${displayedKey.relative.label}'
+                          : 'relativo: --',
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                      ),
+                    ),
                     if (_currentReading?.showPassage == true &&
                         _currentReading?.passage != null) ...[
                       const SizedBox(height: 4),
