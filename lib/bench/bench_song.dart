@@ -51,13 +51,45 @@ class BenchSong {
     required this.referenceKey,
     required this.referenceMode,
     this.referenceSource = 'Cifra Club',
-    this.referenceSegments = const [],
+    List<SongSegment>? referenceSegments,
     this.notes = '',
     this.isCaptured = false,
     this.capturedDate,
     this.capturedResult,
     this.capturedDir,
-  });
+  }) : referenceSegments = referenceSegments != null ? List<SongSegment>.from(referenceSegments) : [] {
+    if (this.referenceSegments.isEmpty) {
+      this.referenceSegments.add(SongSegment(
+        fromSeconds: 0.0,
+        key: referenceKey,
+        mode: referenceMode,
+      ));
+    } else {
+      this.referenceSegments[0] = SongSegment(
+        fromSeconds: this.referenceSegments[0].fromSeconds,
+        key: referenceKey,
+        mode: referenceMode,
+      );
+    }
+  }
+
+  void updateReference({String? key, String? mode}) {
+    if (key != null) referenceKey = key;
+    if (mode != null) referenceMode = mode;
+    if (referenceSegments.isNotEmpty) {
+      referenceSegments[0] = SongSegment(
+        fromSeconds: referenceSegments[0].fromSeconds,
+        key: referenceKey,
+        mode: referenceMode,
+      );
+    } else {
+      referenceSegments.add(SongSegment(
+        fromSeconds: 0.0,
+        key: referenceKey,
+        mode: referenceMode,
+      ));
+    }
+  }
 
   String get displayReference =>
       '$referenceKey ${referenceMode.toLowerCase() == "major" ? "Maior" : "Menor"}';
@@ -118,4 +150,79 @@ class BenchSong {
           'notes': notes,
         },
       };
+}
+
+/// Analisa linhas no formato "minuto:segundo -> tom" ou "segundos -> tom"
+/// para preenchimento de reference.segments no pós-captura (Fase 5 / Adendo 1).
+List<SongSegment> parseSegmentsInput(
+  String input, {
+  String fallbackKey = 'C',
+  String fallbackMode = 'major',
+}) {
+  final lines = input.split('\n');
+  final result = <SongSegment>[];
+  for (final line in lines) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) continue;
+
+    String timePart = '';
+    String keyPart = '';
+
+    if (trimmed.contains('->') || trimmed.contains('→')) {
+      final parts = trimmed.contains('->') ? trimmed.split('->') : trimmed.split('→');
+      timePart = parts[0].trim();
+      keyPart = parts[1].trim();
+    } else {
+      final spaceIdx = trimmed.indexOf(' ');
+      if (spaceIdx > 0) {
+        timePart = trimmed.substring(0, spaceIdx).trim();
+        keyPart = trimmed.substring(spaceIdx + 1).trim();
+      } else {
+        continue;
+      }
+    }
+
+    double fromS = 0.0;
+    if (timePart.contains(':')) {
+      final colonParts = timePart.split(':');
+      final m = double.tryParse(colonParts[0].trim()) ?? 0.0;
+      final s = double.tryParse(colonParts[1].trim()) ?? 0.0;
+      fromS = m * 60 + s;
+    } else {
+      final cleaned = timePart.replaceAll(RegExp(r'[^0-9.]'), '');
+      fromS = double.tryParse(cleaned) ?? 0.0;
+    }
+
+    if (keyPart.isEmpty) continue;
+
+    String mode = 'major';
+    String key = keyPart;
+
+    final lower = keyPart.toLowerCase();
+    if (lower.contains('menor') || lower.contains('minor')) {
+      mode = 'minor';
+      key = keyPart.replaceAll(RegExp(r'menor|minor', caseSensitive: false), '').trim();
+    } else if (lower.contains('maior') || lower.contains('major')) {
+      mode = 'major';
+      key = keyPart.replaceAll(RegExp(r'maior|major', caseSensitive: false), '').trim();
+    } else if (keyPart.length > 1 && keyPart.endsWith('m') && !keyPart.endsWith('bm')) {
+      mode = 'minor';
+      key = keyPart.substring(0, keyPart.length - 1).trim();
+    }
+
+    if (key.isNotEmpty) {
+      if (key.length == 1) {
+        key = key.toUpperCase();
+      } else if (key.length >= 2) {
+        key = key[0].toUpperCase() + key.substring(1);
+      }
+    } else {
+      key = fallbackKey;
+    }
+
+    result.add(SongSegment(fromSeconds: fromS, key: key, mode: mode));
+  }
+
+  result.sort((a, b) => a.fromSeconds.compareTo(b.fromSeconds));
+  return result;
 }

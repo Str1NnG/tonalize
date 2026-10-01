@@ -344,8 +344,8 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       } else {
         await _benchSession!.completeSession(
           verdictResult: 'incompleta',
-          finalLabel: _engine.displayed?.label ?? '',
-          finalSecond: _currentReading?.second.label ?? '',
+          finalLabel: _benchSession?.lastNonEmptyDisplayedLabel ?? _engine.displayed?.label ?? '',
+          finalSecond: _benchSession?.lastNonEmptySecondLabel ?? _currentReading?.second.label ?? '',
           notes: 'Encerrado sem veredicto (saiu da tela)',
         );
       }
@@ -355,13 +355,27 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
   Future<void> _showVerdictSheet() async {
     if (_benchSession == null || widget.benchSong == null) return;
     final song = widget.benchSong!;
-    final displayedLabel = _engine.displayed?.label ?? 'N/A';
-    final secondLabel = _currentReading?.second.label ?? 'N/A';
-    final top3 = _benchSession!.getFinalBarsTop3();
+    final displayedLabel = (_engine.displayed?.label != null && _engine.displayed!.label.isNotEmpty)
+        ? _engine.displayed!.label
+        : (_benchSession?.lastNonEmptyDisplayedLabel ?? 'N/A');
+    final secondLabel = (_currentReading?.second.label != null && _currentReading!.second.label.isNotEmpty)
+        ? _currentReading!.second.label
+        : (_benchSession?.lastNonEmptySecondLabel ?? 'N/A');
+    final top3 = _benchSession?.lastNonEmptyBarsTop3 ?? _benchSession?.getFinalBarsTop3() ?? [];
     final top3Str = top3.isNotEmpty ? top3.join(' · ') : '--';
 
     String verdict = 'acertou';
     final notesController = TextEditingController();
+
+    String initialSegmentsText = '';
+    if (song.referenceSegments.length > 1) {
+      initialSegmentsText = song.referenceSegments.map((s) {
+        final m = s.fromSeconds ~/ 60;
+        final sec = (s.fromSeconds % 60).round().toString().padLeft(2, '0');
+        return '$m:$sec -> ${s.key} ${s.mode == "minor" ? "menor" : "maior"}';
+      }).join('\n');
+    }
+    final segmentsController = TextEditingController(text: initialSegmentsText);
 
     await showModalBottomSheet(
       context: context,
@@ -460,6 +474,16 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                     ),
                     const SizedBox(height: 16),
                     TextField(
+                      controller: segmentsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Esta gravação tem mais de uma música ou muda de tom? (opcional)',
+                        hintText: 'minuto:segundo -> tom\nEx: 0:00 -> Sol maior\n1:25 -> Mi menor',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
                       controller: notesController,
                       decoration: const InputDecoration(
                         labelText: 'Notas / Observações (opcional)',
@@ -476,11 +500,33 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
                         icon: const Icon(Icons.check),
                         label: const Text('SALVAR SESSÃO', style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () async {
+                          List<SongSegment>? newSegments;
+                          if (segmentsController.text.trim().isNotEmpty) {
+                            final parsed = parseSegmentsInput(
+                              segmentsController.text.trim(),
+                              fallbackKey: song.referenceKey,
+                              fallbackMode: song.referenceMode,
+                            );
+                            if (parsed.isNotEmpty) {
+                              if (parsed[0].fromSeconds == 0.0) {
+                                song.updateReference(key: parsed[0].key, mode: parsed[0].mode);
+                              } else {
+                                parsed.insert(0, SongSegment(
+                                  fromSeconds: 0.0,
+                                  key: song.referenceKey,
+                                  mode: song.referenceMode,
+                                ));
+                              }
+                              newSegments = parsed;
+                            }
+                          }
+
                           _sessionCompleted = true;
                           await _benchSession!.completeSession(
                             verdictResult: verdict,
                             finalLabel: displayedLabel,
                             finalSecond: secondLabel,
+                            segments: newSegments,
                             notes: notesController.text.trim(),
                           );
                           _stopListening();

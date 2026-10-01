@@ -272,7 +272,7 @@ class _BenchScreenState extends State<BenchScreen> {
                       .map((note) => DropdownMenuItem(value: note, child: Text(note)))
                       .toList(),
                   onChanged: (val) {
-                    if (val != null) setState(() => song.referenceKey = val);
+                    if (val != null) setState(() => song.updateReference(key: val));
                   },
                 ),
                 const SizedBox(width: 8),
@@ -284,7 +284,7 @@ class _BenchScreenState extends State<BenchScreen> {
                     DropdownMenuItem(value: 'minor', child: Text('Menor')),
                   ],
                   onChanged: (val) {
-                    if (val != null) setState(() => song.referenceMode = val);
+                    if (val != null) setState(() => song.updateReference(mode: val));
                   },
                 ),
                 const Spacer(),

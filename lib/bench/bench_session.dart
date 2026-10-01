@@ -38,6 +38,19 @@ class BenchSession {
   final List<List<double>> _recentChromaWindow = [];
   final int _maxRecentFrames = 35; // ~3.2 segundos a 10.8 fps
 
+  final double silenceThresholdDb;
+
+  // Última leitura com letreiro não vazio antes do silêncio final (Fase 5)
+  String? _lastNonEmptyDisplayedLabel;
+  String? _lastNonEmptySecondLabel;
+  List<String>? _lastNonEmptyBarsTop3;
+  double? _lastNonEmptySecond;
+
+  String? get lastNonEmptyDisplayedLabel => _lastNonEmptyDisplayedLabel;
+  String? get lastNonEmptySecondLabel => _lastNonEmptySecondLabel;
+  List<String> get lastNonEmptyBarsTop3 => _lastNonEmptyBarsTop3 ?? getFinalBarsTop3();
+  double? get lastNonEmptySecond => _lastNonEmptySecond;
+
   static const List<String> pitchNames = [
     'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
   ];
@@ -48,8 +61,9 @@ class BenchSession {
     required this.configString,
     this.deviceModel = 'Poco X7 Pro',
     this.androidVersion = '15',
-    this.appVersion = '1.3.5',
-    this.gitCommit = 'v3.5.2',
+    this.appVersion = '1.4.0',
+    this.gitCommit = 'v3.6',
+    this.silenceThresholdDb = -70.0,
     required this.startTimeWall,
   });
 
@@ -59,8 +73,9 @@ class BenchSession {
     required String configString,
     String deviceModel = 'Poco X7 Pro',
     String androidVersion = '15',
-    String appVersion = '1.3.5',
-    String gitCommit = 'v3.5.2',
+    String appVersion = '1.4.0',
+    String gitCommit = 'v3.6',
+    double silenceThresholdDb = -70.0,
   }) async {
     final now = DateTime.now();
     final session = BenchSession._(
@@ -71,6 +86,7 @@ class BenchSession {
       androidVersion: androidVersion,
       appVersion: appVersion,
       gitCommit: gitCommit,
+      silenceThresholdDb: silenceThresholdDb,
       startTimeWall: now,
     );
 
@@ -115,6 +131,8 @@ class BenchSession {
 
     // Flush a cada 5 segundos
     _flushTimer = Timer.periodic(const Duration(seconds: 5), (_) => flush());
+
+    await writePartialSessionJson();
   }
 
   void addFrame(ChromaFrame frame) {
@@ -189,6 +207,13 @@ class BenchSession {
     final eventStr = reading.event == MemoryEvent.none ? '' : reading.event.name;
     final matureInt = isSongMature ? 1 : 0;
 
+    if (reading.displayed != null && reading.displayed!.label.isNotEmpty) {
+      _lastNonEmptyDisplayedLabel = reading.displayed!.label;
+      _lastNonEmptySecondLabel = reading.second.label;
+      _lastNonEmptyBarsTop3 = getFinalBarsTop3();
+      _lastNonEmptySecond = tAudioMs / 1000.0;
+    }
+
     _readingsSink!.writeln(
       '$tAudioMs,$tWall,$displayedStr,$passageStr,$showPassageInt,'
       '$bestStr,$secondStr,$rBestStr,$rDispStr,$rSecondStr,$confStr,'
@@ -227,12 +252,80 @@ class BenchSession {
     await _framesSink?.flush();
     await _readingsSink?.flush();
     await _marksSink?.flush();
+    if (_framesSink != null) {
+      try {
+        await writePartialSessionJson();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> writePartialSessionJson() async {
+    final effectiveSegments = List<SongSegment>.from(song.referenceSegments);
+    if (effectiveSegments.isEmpty) {
+      effectiveSegments.add(SongSegment(
+        fromSeconds: 0.0,
+        key: song.referenceKey,
+        mode: song.referenceMode,
+      ));
+    } else {
+      effectiveSegments[0] = SongSegment(
+        fromSeconds: effectiveSegments[0].fromSeconds,
+        key: song.referenceKey,
+        mode: song.referenceMode,
+      );
+    }
+
+    final top3 = _lastNonEmptyBarsTop3 ?? getFinalBarsTop3();
+    final finalLabel = _lastNonEmptyDisplayedLabel ?? '';
+    final finalSecond = _lastNonEmptySecondLabel ?? '';
+
+    final sessionMap = {
+      'schema': 1,
+      'song': song.toJson(),
+      'reference': {
+        'key': song.referenceKey,
+        'mode': song.referenceMode,
+        'source': song.referenceSource,
+        'segments': effectiveSegments.map((s) => s.toJson()).toList(),
+        'notes': song.notes,
+      },
+      'capture': {
+        'started_wall': startTimeWall.toIso8601String(),
+        'ended_wall': null,
+        'device': deviceModel,
+        'android': androidVersion,
+        'app_version': appVersion,
+        'git': gitCommit,
+        'config': configString,
+        'playback': 'alto-falantes do notebook, volume fixo',
+        'distance_cm': 40,
+        'room': 'sala silenciosa',
+        'silence_threshold_db': silenceThresholdDb,
+      },
+      'verdict': {
+        'final_bars_top3': top3,
+        'final_label': finalLabel,
+        'final_second': finalSecond,
+        if (_lastNonEmptySecond != null) 'final_second_s': _lastNonEmptySecond,
+        'result': 'em andamento',
+        'notes': '',
+      },
+      'counts': {
+        'frames': frameCount,
+        'readings': readingCount,
+        'marks': markCount,
+      }
+    };
+
+    const encoder = JsonEncoder.withIndent('  ');
+    await sessionJsonFile.writeAsString(encoder.convert(sessionMap));
   }
 
   Future<void> completeSession({
     required String verdictResult, // 'acertou' | 'errou' | 'parcial' | 'referencia_duvidosa' | 'descartar'
-    required String finalLabel,
-    required String finalSecond,
+    String? finalLabel,
+    String? finalSecond,
+    List<SongSegment>? segments,
     String notes = '',
   }) async {
     endTimeWall = DateTime.now();
@@ -247,7 +340,30 @@ class BenchSession {
     _readingsSink = null;
     _marksSink = null;
 
-    final top3 = getFinalBarsTop3();
+    final resolvedLabel = (finalLabel != null && finalLabel.isNotEmpty && finalLabel != 'N/A')
+        ? finalLabel
+        : (_lastNonEmptyDisplayedLabel ?? '');
+    final resolvedSecond = (finalSecond != null && finalSecond.isNotEmpty && finalSecond != 'N/A')
+        ? finalSecond
+        : (_lastNonEmptySecondLabel ?? '');
+    final resolvedTop3 = _lastNonEmptyBarsTop3 ?? getFinalBarsTop3();
+
+    final effectiveSegments = List<SongSegment>.from(segments ?? song.referenceSegments);
+    if (effectiveSegments.isEmpty) {
+      effectiveSegments.add(SongSegment(
+        fromSeconds: 0.0,
+        key: song.referenceKey,
+        mode: song.referenceMode,
+      ));
+    } else {
+      effectiveSegments[0] = SongSegment(
+        fromSeconds: effectiveSegments[0].fromSeconds,
+        key: song.referenceKey,
+        mode: song.referenceMode,
+      );
+    }
+    song.referenceSegments.clear();
+    song.referenceSegments.addAll(effectiveSegments);
 
     final sessionMap = {
       'schema': 1,
@@ -256,7 +372,7 @@ class BenchSession {
         'key': song.referenceKey,
         'mode': song.referenceMode,
         'source': song.referenceSource,
-        'segments': song.referenceSegments.map((s) => s.toJson()).toList(),
+        'segments': effectiveSegments.map((s) => s.toJson()).toList(),
         'notes': song.notes,
       },
       'capture': {
@@ -270,11 +386,13 @@ class BenchSession {
         'playback': 'alto-falantes do notebook, volume fixo',
         'distance_cm': 40,
         'room': 'sala silenciosa',
+        'silence_threshold_db': silenceThresholdDb,
       },
       'verdict': {
-        'final_bars_top3': top3,
-        'final_label': finalLabel,
-        'final_second': finalSecond,
+        'final_bars_top3': resolvedTop3,
+        'final_label': resolvedLabel,
+        'final_second': resolvedSecond,
+        if (_lastNonEmptySecond != null) 'final_second_s': _lastNonEmptySecond,
         'result': verdictResult,
         'notes': notes,
       },
