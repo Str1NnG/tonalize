@@ -223,6 +223,7 @@ class KeyCandidate {
   String get mode => major ? 'Maior' : 'Menor';
   String get label => '$name $mode';
   String get shortLabel => '$name${major ? "" : "m"}';
+  String get sharpShortLabel => '${noteNames[tonic]}${major ? "" : "m"}';
 
   /// Tom relativo: maior -> tônica + 9 (menor); menor -> tônica + 3 (maior).
   KeyCandidate get relative {
