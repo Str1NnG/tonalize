@@ -224,9 +224,12 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
         _lastAudioMs = frame.tAudioMs;
         _benchSession?.addFrame(frame);
         if (frame.chroma != null) {
+          final at = frame.tAudioMs > 0
+              ? Duration(milliseconds: frame.tAudioMs)
+              : _stopwatch.elapsed;
           _engine.addFrame(
             frame.chroma!,
-            _stopwatch.elapsed,
+            at,
             bassPc: frame.bassPc,
             bassProb: frame.bassProb,
           );
@@ -240,7 +243,10 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
     _evalTimer?.cancel();
     _evalTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (!_isListening) return;
-      final reading = _engine.evaluate(_stopwatch.elapsed);
+      final at = _lastAudioMs > 0
+          ? Duration(milliseconds: _lastAudioMs)
+          : _stopwatch.elapsed;
+      final reading = _engine.evaluate(at);
 
       // Bancada de testes: gravar reading
       if (reading != null && _benchSession != null) {
@@ -255,8 +261,6 @@ class _KeyAnalysisScreenState extends State<KeyAnalysisScreen>
       // Avisos de eventos de memória (Fase 4.1)
       if (reading != null && reading.event != MemoryEvent.none) {
         if (reading.event == MemoryEvent.silenceReset) {
-          _stopwatch.reset();
-          _stopwatch.start();
           _showSnackBar('Nova música? Leitura reiniciada');
         } else if (reading.event == MemoryEvent.farKeyConfirmed) {
           _showSnackBar('Tom mudou — memória da música reiniciada');

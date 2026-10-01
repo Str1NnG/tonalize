@@ -570,6 +570,110 @@ void main() {
       );
     });
   });
+
+  group('Fase 1: Correção de âncora temporal, gaps de silêncio e reset manual', () {
+    test('1a. Gap de silêncio de 8s: exibição volta em 41s e songSeconds entre 2 e 4s sem negativos', () {
+      final engine = TonalEngine();
+
+      // 0–30s de frames sintéticos de D maior
+      feedFrames(engine, kkMajor, 2, seconds: 30.0, startAt: Duration.zero, stepMs: 100);
+      final r30 = engine.evaluate(const Duration(seconds: 30));
+      expect(r30?.displayed?.label, equals('D Maior'));
+      expect(r30!.songSeconds, inInclusiveRange(29.0, 31.0));
+
+      // Gap de 8s (30s a 38s): evaluate durante o silêncio (37s)
+      final r37 = engine.evaluate(const Duration(seconds: 37));
+      expect(r37, isNull);
+      expect(engine.displayed, isNull);
+
+      // 38–39s: 1s de áudio após o gap
+      feedFrames(engine, kkMajor, 2, seconds: 1.0, startAt: const Duration(seconds: 38), stepMs: 100);
+
+      // Leitura intermediária em 39s: menos de 2s de áudio, displayed ainda null
+      final r39 = engine.evaluate(const Duration(seconds: 39));
+      expect(r39?.displayed, isNull);
+      expect(r39?.songSeconds, inInclusiveRange(0.8, 1.2));
+      expect(r39?.songSeconds, greaterThanOrEqualTo(0.0));
+      expect(r39?.secondsInWindow, greaterThanOrEqualTo(0.0));
+
+      // 39–41s: mais 2s de áudio (3s acumulados) -> exibição presente, songSeconds em [2, 4]
+      feedFrames(engine, kkMajor, 2, seconds: 2.0, startAt: const Duration(seconds: 39), stepMs: 100);
+      final r41 = engine.evaluate(const Duration(seconds: 41));
+      expect(r41, isNotNull);
+      expect(r41!.displayed?.label, equals('D Maior'));
+      expect(r41.songSeconds, inInclusiveRange(2.0, 4.0));
+      expect(r41.secondsInWindow, greaterThanOrEqualTo(0.0));
+    });
+
+    test('1b. Dois gaps de silêncio (0-30, 38-60, 68-90): comportamento idêntico após cada gap', () {
+      final engine = TonalEngine();
+
+      // Trecho 1: 0–30s
+      feedFrames(engine, kkMajor, 2, seconds: 30.0, startAt: Duration.zero, stepMs: 100);
+      expect(engine.evaluate(const Duration(seconds: 30))?.displayed?.label, equals('D Maior'));
+
+      // Gap 1: 30-38s (8s)
+      expect(engine.evaluate(const Duration(seconds: 37)), isNull);
+
+      // Trecho 2: 38–41s (3s de áudio)
+      feedFrames(engine, kkMajor, 2, seconds: 3.0, startAt: const Duration(seconds: 38), stepMs: 100);
+      final r41 = engine.evaluate(const Duration(seconds: 41));
+      expect(r41?.displayed?.label, equals('D Maior'));
+      expect(r41!.songSeconds, inInclusiveRange(2.0, 4.0));
+      expect(r41.songSeconds, greaterThanOrEqualTo(0.0));
+
+      // Continua trecho 2 até 60s
+      feedFrames(engine, kkMajor, 2, seconds: 19.0, startAt: const Duration(seconds: 41), stepMs: 100);
+      expect(engine.evaluate(const Duration(seconds: 60))?.displayed?.label, equals('D Maior'));
+
+      // Gap 2: 60-68s (8s)
+      expect(engine.evaluate(const Duration(seconds: 67)), isNull);
+
+      // Trecho 3: 68–71s (3s de áudio)
+      feedFrames(engine, kkMajor, 2, seconds: 3.0, startAt: const Duration(seconds: 68), stepMs: 100);
+      final r71 = engine.evaluate(const Duration(seconds: 71));
+      expect(r71?.displayed?.label, equals('D Maior'));
+      expect(r71!.songSeconds, inInclusiveRange(2.0, 4.0));
+      expect(r71.songSeconds, greaterThanOrEqualTo(0.0));
+    });
+
+    test('1c. manualReset() aos 30s com áudio contínuo: exibição retorna em <= 3s, contadores reiniciam do zero', () {
+      final engine = TonalEngine();
+
+      // Áudio 0-30s
+      feedFrames(engine, kkMajor, 2, seconds: 30.0, startAt: Duration.zero, stepMs: 100);
+      expect(engine.evaluate(const Duration(seconds: 30))?.displayed?.label, equals('D Maior'));
+
+      // Reset manual aos 30s
+      engine.reset();
+      expect(engine.displayed, isNull);
+
+      // Áudio continua 30s a 30.5s (0.5s)
+      feedFrames(engine, kkMajor, 2, seconds: 0.5, startAt: const Duration(seconds: 30), stepMs: 100);
+
+      // Em 30.5s: apenas 0.5s após reset -> displayed é null
+      final r305 = engine.evaluate(const Duration(milliseconds: 30500));
+      expect(r305?.displayed, isNull);
+
+      // Continua 30.5s a 33s (2.5s adicionais, total 3s após reset)
+      feedFrames(engine, kkMajor, 2, seconds: 2.5, startAt: const Duration(milliseconds: 30500), stepMs: 100);
+      final r33 = engine.evaluate(const Duration(seconds: 33));
+      expect(r33, isNotNull);
+      expect(r33!.displayed?.label, equals('D Maior'));
+      expect(r33.songSeconds, inInclusiveRange(2.5, 3.5));
+    });
+
+    test('1d. Sem gap: songSeconds aos 100s está em [99, 101]', () {
+      final engine = TonalEngine();
+
+      // Áudio contínuo de 0 a 100s
+      feedFrames(engine, kkMajor, 2, seconds: 100.0, startAt: Duration.zero, stepMs: 100);
+      final r100 = engine.evaluate(const Duration(seconds: 100));
+      expect(r100, isNotNull);
+      expect(r100!.displayed?.label, equals('D Maior'));
+      expect(r100.songSeconds, inInclusiveRange(99.0, 101.0));
+    });
+  });
 }
 
 class _ForcedKeyStabilizer extends KeyStabilizer {

@@ -167,8 +167,15 @@ class TonalEngine {
   TonalReading? evaluate(Duration now) {
     var event = _pending;
     _pending = MemoryEvent.none;
-    final dt = _lastEvalAt == null ? 0.0 : _secs(now, _lastEvalAt!);
+    final dt = (_lastEvalAt == null || now < _lastEvalAt!)
+        ? 0.0
+        : _secs(now, _lastEvalAt!);
     _lastEvalAt = now;
+
+    if (_farSince != null && now < _farSince!) _farSince = null;
+    if (_passageDiffersSince != null && now < _passageDiffersSince!) {
+      _passageDiffersSince = null;
+    }
 
     // 1. trecho (igual ao plano 2)
     List<KeyCandidate>? pScores;
@@ -361,12 +368,12 @@ class TonalEngine {
               .clamp(0.0, 1.0),
       profile: [for (final v in profile) max > 0 ? v / max : 0.0],
       challenge: stab.challenge,
-      secondsInWindow: seconds,
+      secondsInWindow: seconds < 0 ? 0.0 : seconds,
       autoReset: event == MemoryEvent.silenceReset,
       passage: passageKey,
       showPassage: showPassage,
       event: event,
-      songSeconds: song.secondsInWindow,
+      songSeconds: song.secondsInWindow < 0 ? 0.0 : song.secondsInWindow,
       evidenceSeconds: evidenceSeconds,
       bassPc: _lastBassPc,
     );

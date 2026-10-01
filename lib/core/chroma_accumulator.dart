@@ -20,7 +20,7 @@ class ChromaAccumulator {
 
   bool add(List<double> chroma, Duration at) {
     var reset = false;
-    if (gapExceeded(at)) {
+    if (gapExceeded(at) || (_lastFrameAt != null && at < _lastFrameAt!)) {
       clear();
       reset = true;
     }
@@ -59,9 +59,11 @@ class ChromaAccumulator {
     return acc;
   }
 
-  double get secondsInWindow => _frames.isEmpty || _lastFrameAt == null
-      ? 0
-      : (_lastFrameAt! - _frames.first.$1).inMilliseconds / 1000.0;
+  double get secondsInWindow {
+    if (_frames.isEmpty || _lastFrameAt == null) return 0;
+    final s = (_lastFrameAt! - _frames.first.$1).inMilliseconds / 1000.0;
+    return s < 0 ? 0 : s;
+  }
 
   /// Recomeça com uma cópia dos registros de outra memória (reinício da memória da música a partir do trecho).
   void seedFrom(ChromaAccumulator other) {
