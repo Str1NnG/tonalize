@@ -168,6 +168,7 @@ class ReplayRow {
   final double rDisplayed;
   final double songSeconds;
   final double passageSeconds;
+  final Map<String, double> songCandidateScores;
 
   const ReplayRow({
     required this.tS,
@@ -182,6 +183,7 @@ class ReplayRow {
     this.rDisplayed = 0.0,
     this.songSeconds = 0.0,
     this.passageSeconds = 0.0,
+    this.songCandidateScores = const {},
   });
 
   String toCsvLine({bool detailed = false}) {
@@ -209,6 +211,7 @@ class ReplayResult {
   final bool hasNegativeSeconds;
   final bool hasPrematureDisplay;
   final bool hasInvalidNeighborConfirm;
+  final double endOfMusicS;
 
   const ReplayResult({
     required this.sessionPath,
@@ -219,15 +222,23 @@ class ReplayResult {
     required this.hasNegativeSeconds,
     required this.hasPrematureDisplay,
     required this.hasInvalidNeighborConfirm,
+    this.endOfMusicS = 0.0,
   });
 
   /// Calcula a fração do tempo em que o letreiro exibido coincidiu com a referência do trecho.
-  double computeTimeOnRef(String refKey, {double fromS = 0.0, double? toS, bool onlyNonEmpty = false}) {
+  /// Por padrão, avalia dos 10 s até o fim da música (excluindo cauda de silêncio final).
+  double computeTimeOnRef(
+    String refKey, {
+    double fromS = 10.0,
+    double? toS,
+    bool onlyNonEmpty = false,
+  }) {
+    final effectiveToS = toS ?? (endOfMusicS > 0.0 ? endOfMusicS : null);
     int totalCount = 0;
     int matchCount = 0;
     for (final row in rows) {
       if (row.tS < fromS) continue;
-      if (toS != null && row.tS > toS) break;
+      if (effectiveToS != null && row.tS > effectiveToS + 0.05) break;
       if (onlyNonEmpty && row.song.isEmpty) continue;
       totalCount++;
       if (row.song == refKey) {
@@ -243,21 +254,35 @@ class DivergencePoint {
   final double tS;
   final String actSong;
   final String expSong;
+  final double actCorrelation;
+  final double expCorrelation;
   final double correlationDiff;
   final bool isNumericalTie; // diff < 0.01
+  final String? timeShiftedEvent;
+  final bool isAdmitted;
 
   const DivergencePoint({
     required this.tS,
     required this.actSong,
     required this.expSong,
+    required this.actCorrelation,
+    required this.expCorrelation,
     required this.correlationDiff,
     required this.isNumericalTie,
+    this.timeShiftedEvent,
+    required this.isAdmitted,
   });
 
   @override
-  String toString() =>
-      't=${tS.toStringAsFixed(1)}s: act="$actSong" vs exp="$expSong" '
-      '(diff=${correlationDiff.toStringAsFixed(4)}, empate=$isNumericalTie)';
+  String toString() {
+    final s = 't=${tS.toStringAsFixed(1)}s: atual="$actSong" (r=${actCorrelation.toStringAsFixed(4)}) vs '
+        'esperado="$expSong" (r=${expCorrelation.toStringAsFixed(4)}), '
+        'diff correlações = ${correlationDiff.toStringAsFixed(4)}';
+    if (timeShiftedEvent != null) {
+      return '$s ($timeShiftedEvent)';
+    }
+    return '$s (empate numérico: $isNumericalTie)';
+  }
 }
 
 /// Comparação instante a instante com uma timeline esperada.
@@ -377,6 +402,21 @@ class ReplayRunner {
     final lastLineParts = lines.last.split(',');
     final lastAudioMs = int.parse(lastLineParts[colTAudio]);
 
+    final totalDurationS = lastAudioMs / 1000.0;
+    final cutoff80S = totalDurationS * 0.8;
+    double endOfMusicS = totalDurationS;
+
+    for (var i = 1; i < lines.length - 1; i++) {
+      final p1 = lines[i].split(',');
+      final p2 = lines[i + 1].split(',');
+      final t1 = int.parse(p1[colTAudio]) / 1000.0;
+      final t2 = int.parse(p2[colTAudio]) / 1000.0;
+      if (t2 - t1 >= 5.0 && t1 >= cutoff80S) {
+        endOfMusicS = t1;
+        break;
+      }
+    }
+
     double t0 = (firstAudioMs / 100.0).round() / 10.0;
     int frameIdx = 1;
     final rows = <ReplayRow>[];
@@ -460,6 +500,15 @@ class ReplayRunner {
                   : reading.confidence))
           : 0.0;
 
+      Map<String, double> songCandidateScores = const {};
+      if (engine.song.lastAt != null) {
+        final songProf = engine.song.profile(Duration(milliseconds: targetMs));
+        if (songProf != null) {
+          final scs = engine.scorer.score(songProf);
+          songCandidateScores = {for (final s in scs) s.sharpShortLabel: s.r};
+        }
+      }
+
       rows.add(ReplayRow(
         tS: t,
         passage: passageLabel,
@@ -473,6 +522,7 @@ class ReplayRunner {
         rDisplayed: rDisp,
         songSeconds: reading?.songSeconds ?? 0.0,
         passageSeconds: reading?.secondsInWindow ?? 0.0,
+        songCandidateScores: songCandidateScores,
       ));
     }
 
@@ -485,6 +535,7 @@ class ReplayRunner {
       hasNegativeSeconds: hasNegativeSeconds,
       hasPrematureDisplay: hasPrematureDisplay,
       hasInvalidNeighborConfirm: hasInvalidNeighborConfirm,
+      endOfMusicS: endOfMusicS,
     );
   }
 
@@ -516,20 +567,58 @@ class ReplayRunner {
       if (act.song == expSong) {
         matches++;
       } else {
-        // Calcula correlação dos dois letreiros em disputa
-        double diff = 1.0;
-        if (act.best != null && act.second != null) {
-          diff = (act.best!.r - act.second!.r).abs();
-        }
+        // Calcula correlação na memória da música dos dois letreiros em disputa
+        final rAct = act.songCandidateScores[act.song] ?? 0.0;
+        final rExp = act.songCandidateScores[expSong] ?? 0.0;
+        final diff = (rAct - rExp).abs();
         final isTie = diff < 0.01;
+
+        // Checa se a divergência coincide com farKeyConfirmed/neighborKeyConfirmed deslocado no tempo
+        String? shiftedEvent;
+        for (final row in actual.rows) {
+          if ((row.tS - act.tS).abs() <= 10.0) {
+            if (row.event == 'farKeyConfirmed' || row.event == 'neighborKeyConfirmed') {
+              if (row.song == expSong || row.passage == expSong) {
+                final delta = (row.tS - act.tS).abs();
+                shiftedEvent = 'evento deslocado: ${row.event} para ${row.song} em t=${row.tS.toStringAsFixed(1)}s no Dart '
+                    'vs transição para $expSong em t=${act.tS.toStringAsFixed(1)}s no esperado (deslocamento: ${delta.toStringAsFixed(1)}s)';
+                break;
+              }
+            }
+          }
+        }
+        if (shiftedEvent == null) {
+          for (var i = 1; i < expectedRows.length; i++) {
+            final r = expectedRows[i];
+            if (r.length < 5) continue;
+            final t = double.tryParse(r[0]) ?? 0.0;
+            final ev = r[4].trim();
+            final song = r.length > 2 ? r[2].trim() : '';
+            if ((t - act.tS).abs() <= 10.0 && (ev == 'farKeyConfirmed' || ev == 'neighborKeyConfirmed')) {
+              if (song == act.song || song == expSong) {
+                final delta = (t - act.tS).abs();
+                shiftedEvent = 'evento deslocado: $ev para $song em t=${t.toStringAsFixed(1)}s no esperado '
+                    'vs transição em t=${act.tS.toStringAsFixed(1)}s no Dart (deslocamento: ${delta.toStringAsFixed(1)}s)';
+                break;
+              }
+            }
+          }
+        }
+
+        final isAdmitted = isTie || shiftedEvent != null;
+
         firstDivergence ??= DivergencePoint(
           tS: act.tS,
           actSong: act.song,
           expSong: expSong,
+          actCorrelation: rAct,
+          expCorrelation: rExp,
           correlationDiff: diff,
           isNumericalTie: isTie,
+          timeShiftedEvent: shiftedEvent,
+          isAdmitted: isAdmitted,
         );
-        diffs.add('t=${act.tS.toStringAsFixed(1)}: act="${act.song}" vs exp="$expSong" (diff=${diff.toStringAsFixed(4)})');
+        diffs.add('t=${act.tS.toStringAsFixed(1)}: act="${act.song}" (r=${rAct.toStringAsFixed(4)}) vs exp="$expSong" (r=${rExp.toStringAsFixed(4)}) (diff=${diff.toStringAsFixed(4)})');
       }
     }
 

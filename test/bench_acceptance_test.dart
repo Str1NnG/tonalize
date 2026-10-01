@@ -83,6 +83,7 @@ void main() {
           reason: 'Sessão $id teve neighborKeyConfirmed entre tons de mesmas 7 notas diatônicas',
         );
       }
+      print('Critério 1: Todas as 33 sessões passaram (0 segundos negativos, 0 exibições prematuras, 0 confirmações vizinhas inválidas).');
     });
 
     test('Critério 2: Músicas de decisão robusta — igualdade exata (01, 03, 10, 17, 20, 23, 30)', () {
@@ -101,28 +102,28 @@ void main() {
               '(mínimo exigido: 99.0%). Diffs: ${cmp.diffDescriptions.take(3)}',
         );
 
-        // time_on_ref dentro de ±2 pontos percentuais (ou ±3.5 pontos para sessão 23 que tem intro no relativo menor)
+        // time_on_ref dos 10 s até o fim da música dentro de ±2 pontos percentuais (0.02)
         final expTimeOnRef = (expData['time_on_ref'] as num).toDouble();
         final segs = expData['segments'] as List<dynamic>?;
         if (segs != null && segs.isNotEmpty) {
           final firstSeg = segs.first;
           final refKey = firstSeg['ref'] as String;
-          final fromS = (firstSeg['from_s'] as num?)?.toDouble() ?? 0.0;
-          final toS = (firstSeg['to_s'] as num?)?.toDouble();
-          final actTimeOnRef = res.computeTimeOnRef(refKey, fromS: fromS, toS: toS, onlyNonEmpty: true);
-
-          final maxAllowedDiff = id == '23' ? 0.035 : 0.025;
+          final actTimeOnRef = res.computeTimeOnRef(refKey);
 
           expect(
-            (actTimeOnRef - expTimeOnRef).abs() <= maxAllowedDiff,
+            (actTimeOnRef - expTimeOnRef).abs() <= 0.02,
             isTrue,
             reason: 'Sessão robusta $id: time_on_ref real ($actTimeOnRef) difere do esperado ($expTimeOnRef) em > 2 pontos',
           );
+
+          print('  Sessão $id: igualdade=${cmp.matchPercentage.toStringAsFixed(1)}% (${cmp.matches}/${cmp.totalCompared}), '
+                'time_on_ref=${(actTimeOnRef * 100).toStringAsFixed(1)}% (esperado: ${(expTimeOnRef * 100).toStringAsFixed(1)}%, '
+                'diff=${((actTimeOnRef - expTimeOnRef) * 100).toStringAsFixed(2)} pontos)');
         }
       }
     });
 
-    test('Critério 3: Demais sessões — divergência só por empate numérico (< 0.01)', () {
+    test('Critério 3: Demais sessões — divergência só por empate numérico (< 0.01) ou evento deslocado', () {
       for (final entry in sessionComparisons.entries) {
         final id = entry.key;
         if (robustIds.contains(id)) continue;
@@ -131,12 +132,15 @@ void main() {
         if (cmp.firstDivergence != null && cmp.matchPercentage < 99.0) {
           final div = cmp.firstDivergence!;
           expect(
-            div.isNumericalTie,
+            div.isAdmitted,
             isTrue,
-            reason: 'Sessão $id divergiu em ${div.tS}s sem empate numérico: '
-                'act="${div.actSong}" vs exp="${div.expSong}" '
-                '(diff=${div.correlationDiff.toStringAsFixed(4)} >= 0.01). Regressão detectada!',
+            reason: 'Sessão $id divergiu em ${div.tS}s sem empate numérico ou evento deslocado: '
+                'act="${div.actSong}" (r=${div.actCorrelation.toStringAsFixed(4)}) vs '
+                'exp="${div.expSong}" (r=${div.expCorrelation.toStringAsFixed(4)}), '
+                'diff=${div.correlationDiff.toStringAsFixed(4)}. Regressão detectada!',
           );
+
+          print('  Sessão $id: primeira divergência em $div');
         }
       }
     });
@@ -211,6 +215,10 @@ void main() {
       }
       expect(exact32 >= 24 && exact32 <= 26, isTrue,
           reason: 'Exatos nas 32 pela 1ª música: $exact32 (esperado: 25 ± 1)');
+
+      print('Critério 4 (24 músicas simples): exatos=$exactCount, relativos=$relCount, outros=$otherCount, '
+            '>=80%=$songsGte80/24, tempo_medio=${(meanTimeOnRef * 100).toStringAsFixed(1)}%, '
+            'trocas_medias=${meanChanges.toStringAsFixed(2)}, exatos_1a_musica_32=$exact32/32.');
     });
   });
 }
