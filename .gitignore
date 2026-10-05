@@ -43,3 +43,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# material de trabalho e planejamento
+PLANO_*.md
+*.plano.md
+*.plan.md
+
+# chaves e saídas
+android/key.properties
+*.jks
+*.keystore
+*.apk
+tonalize_bench_*.zip
